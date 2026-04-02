@@ -117,3 +117,8 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 AUTH_USER_MODEL = 'core.User'
+
+LOGIN_REDIRECT_URL = '/'   # нужно будет добавить личные кабинеты
+LOGOUT_REDIRECT_URL = '/'  # нужно будет добавить личные кабинеты
+
+LOGIN_REDIRECT_URL = '/'
