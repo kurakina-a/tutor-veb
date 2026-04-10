@@ -10,6 +10,16 @@
         <form class="auth-form" method="post">
             {% csrf_token %}
 
+            {% if form.errors %}
+                <div style="color: red; margin-bottom: 15px; padding: 10px; background: #ffeeee; border-radius: 8px;">
+                    {% for field, errors in form.errors.items %}
+                        {% for error in errors %}
+                            <p style="margin: 5px 0;">{{ error }}</p>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
             <input type="text" name="username" placeholder="Логин" class="auth-input">
             <input type="text" name="first_name" placeholder="Имя" class="auth-input">
             <input type="text" name="last_name" placeholder="Фамилия" class="auth-input">

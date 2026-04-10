@@ -7,6 +7,14 @@
     <div style="width: 100%; max-width: 560px; background: #eaf8e8; border-radius: 24px; padding: 44px 42px 36px; box-shadow: 0 16px 32px rgba(76, 120, 76, 0.18);">
         <h1 style="margin: 0 0 32px; font-size: 30px; font-weight: 700; color: #234b23;">Вход в аккаунт</h1>
         <p style="margin: 0 0 20px; color: #4f6650;">Выбранная роль: {{ role }}</p>
+        
+        
+        {% if form.errors %}
+            <div style="color: red; margin-bottom: 20px; padding: 10px; background: #ffeeee; border-radius: 8px; text-align: center;">
+                Неверный логин или пароль
+            </div>
+        {% endif %}
+
         <form action="#" method="post" style="display: flex; flex-direction: column; gap: 20px;">
             {% csrf_token %}
 

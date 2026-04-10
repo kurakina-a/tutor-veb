@@ -119,7 +119,6 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
-
 AUTH_USER_MODEL = 'core.User'
-
-LOGOUT_REDIRECT_URL = '/'  # нужно будет добавить личные кабинеты
+LOGOUT_REDIRECT_URL = '/'  
+LOGIN_URL = '/login/'

@@ -11,7 +11,7 @@ def home(request):
     return render(request, 'home.html')
 
 def register(request):
-    role = request.GET.get('role', 'student')
+    role = request.POST.get('role', 'student')
     
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
@@ -80,7 +80,7 @@ class CustomLoginView(LoginView):
         user = self.request.user
         if user.is_teacher:
             return '/teacher/dashboard/'
-        elif hasattr(user, 'student'):
+        elif user.is_student:
             return '/student/dashboard/'
         return '/'
 
