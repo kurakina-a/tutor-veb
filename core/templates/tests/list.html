@@ -1,21 +1,100 @@
-<h1>Мои тесты</h1>
+{% extends 'base_auth.html' %}
 
-<a href="{% url 'test_create' %}">Создать новый тест</a>
+{% block title %}Мои тесты{% endblock %}
 
-{% if tests %}
-    <ul>
-    {% for test in tests %}
-        <li>
-            <strong>{{ test.title }}</strong><br>
-            {{ test.description|truncatechars:100 }}<br>
-            Дедлайн: {% if test.deadline %}{{ test.deadline }}{% else %}не указан{% endif %}<br>
-            <a href="{% url 'test_edit' test.id %}">Редактировать</a>
-            <a href="{% url 'test_delete' test.id %}">Удалить</a>
-        </li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>У вас пока нет тестов. Создайте первый!</p>
-{% endif %}
+{% block content %}
+<section style="min-height: 100vh; background: #d8f0d7; padding: 48px 24px;">
+    <div style="max-width: 800px; margin: 0 auto;">
 
-<a href="{% url 'teacher_dashboard' %}">Назад в кабинет</a>
+        <h1 style="font-size: 32px; color: #234b23; margin-bottom: 20px;">
+            Мои тесты
+        </h1>
+
+        <a href="{% url 'test_create' %}" style="
+            display: inline-block;
+            margin-bottom: 30px;
+            padding: 10px 20px;
+            border-radius: 12px;
+            background: #154f14;
+            color: #fff;
+            text-decoration: none;
+            font-weight: 600;
+        ">
+            + Создать новый тест
+        </a>
+
+        {% if tests %}
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                {% for test in tests %}
+                    <div style="
+                        background: #eaf8e8;
+                        padding: 20px;
+                        border-radius: 16px;
+                        box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+                    ">
+                        <strong style="font-size: 20px; color: #234b23;">
+                            {{ test.title }}
+                        </strong>
+
+                        <p style="margin: 10px 0; color: #4f6650;">
+                            {{ test.description|truncatechars:100 }}
+                        </p>
+
+                        <p style="margin: 6px 0; font-size: 14px; color: #355535;">
+                            Дедлайн: 
+                            {% if test.deadline %}
+                                {{ test.deadline }}
+                            {% else %}
+                                не указан
+                            {% endif %}
+                        </p>
+
+                        <div style="margin-top: 12px; display: flex; gap: 10px;">
+                            <a href="{% url 'test_edit' test.id %}" style="
+                                padding: 6px 12px;
+                                border-radius: 10px;
+                                background: #56b947;
+                                color: white;
+                                text-decoration: none;
+                                font-size: 14px;
+                            ">
+                                ✏️ Редактировать
+                            </a>
+
+                            <a href="{% url 'test_delete' test.id %}" style="
+                                padding: 6px 12px;
+                                border-radius: 10px;
+                                background: #b93f3f;
+                                color: white;
+                                text-decoration: none;
+                                font-size: 14px;
+                            ">
+                                🗑️ Удалить
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: #4f6650; font-size: 18px;">
+                У вас пока нет тестов. Создайте первый!
+            </p>
+        {% endif %}
+
+        <a href="{% url 'teacher_dashboard' %}" style="
+            display: inline-block;
+            margin-top: 30px;
+            padding: 10px 18px;
+            border-radius: 12px;
+            border: 2px solid #154f14;
+            background: #fff;
+            color: #154f14;
+            text-decoration: none;
+            font-weight: 600;
+        ">
+            ← Назад в кабинет
+        </a>
+
+    </div>
+</section>
+{% endblock %}

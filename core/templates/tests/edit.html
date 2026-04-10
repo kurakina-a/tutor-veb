@@ -1,22 +1,94 @@
-<h1>Редактирование теста: {{ test.title }}</h1>
+{% extends 'base_auth.html' %}
 
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Сохранить изменения</button>
-</form>
+{% block title %}Редактирование теста{% endblock %}
 
-<hr>
+{% block content %}
+<section style="min-height: 100vh; background: #d8f0d7; padding: 48px 24px;">
+    <div style="max-width: 700px; margin: 0 auto;">
 
-<h2>Вопросы теста</h2>
-{% if questions %}
-    <ul>
-    {% for q in questions %}
-        <li>{{ q.text }}</li>
-    {% endfor %}
-    </ul>
-{% else %}
-    <p>Вопросов пока нет. Добавьте первый вопрос.</p>
-{% endif %}
+        <div style="
+            background: #eaf8e8;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+        ">
 
-<a href="{% url 'test_list' %}">К списку тестов</a>
+            <!-- НАЗАД -->
+            <a href="{% url 'test_list' %}" style="
+                display: inline-block;
+                margin-bottom: 20px;
+                padding: 8px 14px;
+                border-radius: 10px;
+                border: 2px solid #154f14;
+                background: #fff;
+                color: #154f14;
+                text-decoration: none;
+                font-weight: 600;
+            ">
+                ← К списку тестов
+            </a>
+
+            <!-- ЗАГОЛОВОК -->
+            <h1 style="color: #234b23; margin-bottom: 20px;">
+                Редактирование теста
+            </h1>
+
+            <p style="margin-bottom: 20px; color: #355535;">
+                {{ test.title }}
+            </p>
+
+            <!-- ФОРМА -->
+            <form method="post" style="display: flex; flex-direction: column; gap: 16px;">
+                {% csrf_token %}
+
+                {{ form.as_p }}
+
+                <button type="submit" style="
+                    margin-top: 10px;
+                    height: 50px;
+                    border-radius: 14px;
+                    border: none;
+                    background: #154f14;
+                    color: #fff;
+                    font-size: 16px;
+                    font-weight: 700;
+                    cursor: pointer;
+                ">
+                    Сохранить изменения
+                </button>
+            </form>
+
+        </div>
+
+        <!-- ВОПРОСЫ -->
+        <div style="
+            margin-top: 30px;
+            background: #eaf8e8;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+        ">
+
+            <h2 style="color: #234b23; margin-bottom: 20px;">
+                Вопросы теста
+            </h2>
+
+            {% if questions %}
+                <ul style="padding-left: 20px;">
+                    {% for q in questions %}
+                        <li style="margin-bottom: 10px; color: #355535;">
+                            {{ q.text }}
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p style="color: #4f6650;">
+                    Вопросов пока нет. Добавьте первый вопрос.
+                </p>
+            {% endif %}
+
+        </div>
+
+    </div>
+</section>
+{% endblock %}
