@@ -3,13 +3,22 @@ from . import views
 from django.contrib.auth.views import LoginView, LogoutView
 
 urlpatterns = [
+    #главная и авторизация
     path('', views.home, name='home'),
     path('register/', views.register, name='register'),
     path('login/', views.CustomLoginView.as_view(template_name='registration/login.html'), name='login'),
     path('logout/', LogoutView.as_view(next_page='home'), name='logout'),
+    #личные кабинеты
     path('teacher/dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
     path('student/dashboard/', views.student_dashboard, name='student_dashboard'),
+    
     path('student/tasks/', views.student_tasks, name='student_tasks'),
     path('teacher/tests/', views.tests_list, name='tests_list'),
     path('teacher/checking/<int:student_id>/', views.teacher_checking, name='teacher_checking'),
+
+    #тесты
+    path('tests/', views.test_list, name='test_list'),
+    path('tests/create/', views.test_create, name='test_create'),
+    path('tests/<int:test_id>/edit/', views.test_edit, name='test_edit'),
+    path('tests/<int:test_id>/delete/', views.test_delete, name='test_delete'),
 ]

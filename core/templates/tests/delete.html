@@ -1,0 +1,10 @@
+<h1>Удалить тест?</h1>
+
+<p>Вы уверены, что хотите удалить тест <strong>"{{ test.title }}"</strong>?</p>
+<p>Все вопросы и варианты ответов тоже будут удалены.</p>
+
+<form method="post">
+    {% csrf_token %}
+    <button type="submit">Да, удалить</button>
+    <a href="{% url 'test_list' %}">Отмена</a>
+</form>

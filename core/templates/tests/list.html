@@ -1,0 +1,21 @@
+<h1>Мои тесты</h1>
+
+<a href="{% url 'test_create' %}">Создать новый тест</a>
+
+{% if tests %}
+    <ul>
+    {% for test in tests %}
+        <li>
+            <strong>{{ test.title }}</strong><br>
+            {{ test.description|truncatechars:100 }}<br>
+            Дедлайн: {% if test.deadline %}{{ test.deadline }}{% else %}не указан{% endif %}<br>
+            <a href="{% url 'test_edit' test.id %}">Редактировать</a>
+            <a href="{% url 'test_delete' test.id %}">Удалить</a>
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>У вас пока нет тестов. Создайте первый!</p>
+{% endif %}
+
+<a href="{% url 'teacher_dashboard' %}">Назад в кабинет</a>

@@ -1,0 +1,22 @@
+<h1>Редактирование теста: {{ test.title }}</h1>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Сохранить изменения</button>
+</form>
+
+<hr>
+
+<h2>Вопросы теста</h2>
+{% if questions %}
+    <ul>
+    {% for q in questions %}
+        <li>{{ q.text }}</li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>Вопросов пока нет. Добавьте первый вопрос.</p>
+{% endif %}
+
+<a href="{% url 'test_list' %}">К списку тестов</a>
