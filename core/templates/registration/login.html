@@ -1,6 +1,43 @@
-<h2>Вход</h2>
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Войти</button>
-</form>
+{% extends 'base_auth.html' %}
+
+{% block title %}Вход{% endblock %}
+
+{% block content %}
+<section style="min-height: 100vh; display: flex; justify-content: center; align-items: center; background: #d8f0d7; padding: 40px 20px;">
+    <div style="width: 100%; max-width: 560px; background: #eaf8e8; border-radius: 24px; padding: 44px 42px 36px; box-shadow: 0 16px 32px rgba(76, 120, 76, 0.18);">
+        <h1 style="margin: 0 0 32px; font-size: 30px; font-weight: 700; color: #234b23;">Вход в аккаунт</h1>
+        <p style="margin: 0 0 20px; color: #4f6650;">Выбранная роль: {{ role }}</p>
+        <form action="#" method="post" style="display: flex; flex-direction: column; gap: 20px;">
+            {% csrf_token %}
+
+            <input type="hidden" name="role" value="{{ role }}">
+
+            <input
+                type="text"
+                name="username"
+                placeholder="Логин"
+                style="width: 100%; height: 58px; border-radius: 16px; border: 1px solid #d8dde0; background: #ffffff; font-size: 18px; padding: 0 18px; box-sizing: border-box;"
+            >
+
+            <input
+                type="password"
+                name="password"
+                placeholder="Пароль"
+                style="width: 100%; height: 58px; border-radius: 16px; border: 1px solid #d8dde0; background: #ffffff; font-size: 18px; padding: 0 18px; box-sizing: border-box;"
+            >
+
+            <button
+                type="submit"
+                style="margin-top: 16px; width: 100%; height: 60px; border-radius: 16px; border: none; background: #154f14; color: #ffffff; font-size: 20px; font-weight: 700; cursor: pointer;"
+            >
+                Войти
+            </button>
+        </form>
+
+        <p style="margin-top: 26px; text-align: center; font-size: 16px; color: #4f6650;">
+            Нет аккаунта?
+            <a href="{% url 'register' %}" style="color: #234b23; font-weight: 700; text-decoration: none;">Зарегистрируйся</a>
+        </p>
+    </div>
+</section>
+{% endblock %}

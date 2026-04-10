@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Проверка работ{% endblock %}
+
+{% block content %}
+<section class="page-section">
+    <h1>Проверка работ</h1>
+    <p><strong>Ученик:</strong> {{ student }}</p>
+
+    {% if answers %}
+        <ul class="list">
+            {% for answer in answers %}
+                <li>{{ answer }}</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Ответов пока нет.</p>
+    {% endif %}
+</section>
+{% endblock %}

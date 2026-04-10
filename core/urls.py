@@ -7,6 +7,9 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('login/', views.CustomLoginView.as_view(template_name='registration/login.html'), name='login'),
     path('logout/', LogoutView.as_view(next_page='home'), name='logout'),
-    path('teacher/', views.teacher_dashboard, name='teacher_dashboard'),
-    path('student/', views.student_dashboard, name='student_dashboard'),
+    path('teacher/dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
+    path('student/dashboard/', views.student_dashboard, name='student_dashboard'),
+    path('student/tasks/', views.student_tasks, name='student_tasks'),
+    path('teacher/tests/', views.tests_list, name='tests_list'),
+    path('teacher/checking/<int:student_id>/', views.teacher_checking, name='teacher_checking'),
 ]
