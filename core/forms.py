@@ -1,5 +1,7 @@
 from django import forms
+#импорт моделей, с которыми работаем
 from .models import User
+from .models import Test, Question, Option
 
 class CustomUserCreationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput, label='Пароль')
@@ -18,3 +20,21 @@ class CustomUserCreationForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
+class TestForm(forms.ModelForm):
+    class Meta:
+        model = Test
+        fields = ['title', 'description', 'deadline'] #какие поля показывать, остальные заполнятся автоматически
+        widgets = { #как показывать поля
+            'deadline': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        }
+
+class QuestionForm(forms.ModelForm):
+    class Meta:
+        model = Question
+        fields = ['text', 'order']
+
+class OptionForm(forms.ModelForm):
+    class Meta:
+        model = Option
+        fields = ['text', 'is_correct']
