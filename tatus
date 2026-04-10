@@ -1,0 +1,17 @@
+ core/forms.py                                      |  30 [32m+[m[31m-[m
+ core/models.py                                     |   2 [32m+[m
+ core/templates/base.html                           |  31 [31m--[m
+ core/templates/base_auth.html                      |  14 [31m-[m
+ core/templates/home.html                           |  37 [31m--[m
+ core/templates/registration/login.html             |  49 [32m+[m[31m-[m
+ core/templates/registration/register.html          |  35 [32m+[m[31m-[m
+ core/templates/student/dashboard.html              |  47 [31m--[m
+ core/templates/student/tasks.html                  |  20 [31m-[m
+ core/templates/teacher/dashboard.html              |  48 [31m--[m
+ core/templates/teacher/tests_list.html             |   7 [31m-[m
+ core/urls.py                                       |   7 [32m+[m[31m-[m
+ core/views.py                                      |  67 [32m+[m[31m--[m
+ mysite/settings.py                                 |   7 [32m+[m[31m-[m
+ static/css/style.css                               | 498 [31m---------------------[m
+ ...60\320\261\320\276\321\202\320\272\320\270.txt" |  38 [32m+[m[31m-[m
+ 16 files changed, 52 insertions(+), 885 deletions(-)
