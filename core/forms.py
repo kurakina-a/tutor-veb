@@ -2,6 +2,7 @@ from django import forms
 #импорт моделей, с которыми работаем
 from .models import User
 from .models import Test, Question, Option
+from django.utils import timezone
 
 class CustomUserCreationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput, label='Пароль')
@@ -28,6 +29,11 @@ class TestForm(forms.ModelForm):
         widgets = { #как показывать поля
             'deadline': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
         }
+    def clean_deadline(self): #проверка дедлайна
+        deadline = self.cleaned_data.get('deadline')
+        if deadline and deadline < timezone.now():
+            raise forms.ValidationError("Дедлайн указан неверно!")
+        return deadline
 
 class QuestionForm(forms.ModelForm):
     class Meta:
