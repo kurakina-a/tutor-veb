@@ -1,0 +1,7 @@
+<h1>Удалить вопрос?</h1>
+<p>Вы уверены, что хотите удалить вопрос: "{{ question.text }}"</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit">Да, удалить</button>
+    <a href="{% url 'test_edit' question.test.id %}">Отмена</a>
+</form>

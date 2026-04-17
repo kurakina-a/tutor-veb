@@ -21,4 +21,14 @@ urlpatterns = [
     path('tests/create/', views.test_create, name='test_create'),
     path('tests/<int:test_id>/edit/', views.test_edit, name='test_edit'),
     path('tests/<int:test_id>/delete/', views.test_delete, name='test_delete'),
+
+    #вопросы
+    path('tests/question/add/<int:test_id>/', views.question_add, name='question_add'),
+    path('question/edit/<int:question_id>/', views.question_edit, name='question_edit'),
+    path('question/delete/<int:question_id>/', views.question_delete, name='question_delete'),
+
+    #варианты ответов
+    path('question/option/add/<int:question_id>/', views.option_add, name='option_add'),
+    path('option/edit/<int:option_id>/', views.option_edit, name='option_edit'),
+    path('option/delete/<int:option_id>/', views.option_delete, name='option_delete'),
 ]
