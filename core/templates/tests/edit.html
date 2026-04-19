@@ -3,17 +3,17 @@
 {% block title %}Редактирование теста{% endblock %}
 
 {% block content %}
+
 <section style="min-height: 100vh; background: #d8f0d7; padding: 48px 24px;">
-    <div style="max-width: 700px; margin: 0 auto;">
+    <div style="max-width: 900px; margin: 0 auto;">
 
         <div style="
             background: #eaf8e8;
             padding: 30px;
             border-radius: 20px;
             box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+            margin-bottom: 28px;
         ">
-
-            <!-- НАЗАД -->
             <a href="{% url 'test_list' %}" style="
                 display: inline-block;
                 margin-bottom: 20px;
@@ -28,19 +28,16 @@
                 ← К списку тестов
             </a>
 
-            <!-- ЗАГОЛОВОК -->
-            <h1 style="color: #234b23; margin-bottom: 20px;">
+            <h1 style="color: #234b23; margin-bottom: 10px;">
                 Редактирование теста
             </h1>
 
-            <p style="margin-bottom: 20px; color: #355535;">
+            <p style="margin-bottom: 24px; color: #355535; font-size: 18px; font-weight: 600;">
                 {{ test.title }}
             </p>
 
-            <!-- ФОРМА -->
             <form method="post" style="display: flex; flex-direction: column; gap: 16px;">
                 {% csrf_token %}
-
                 {{ form.as_p }}
 
                 <button type="submit" style="
@@ -57,36 +54,197 @@
                     Сохранить изменения
                 </button>
             </form>
-
         </div>
 
-        <!-- ВОПРОСЫ -->
         <div style="
-            margin-top: 30px;
             background: #eaf8e8;
             padding: 25px;
             border-radius: 20px;
             box-shadow: 0 6px 16px rgba(0,0,0,0.08);
         ">
+            <div style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 16px;
+                flex-wrap: wrap;
+                margin-bottom: 20px;
+            ">
+                <h2 style="color: #234b23; margin: 0;">
+                    Вопросы теста
+                </h2>
 
-            <h2 style="color: #234b23; margin-bottom: 20px;">
-                Вопросы теста
-            </h2>
+                <a href="{% url 'question_add' test.id %}" style="
+                    display: inline-block;
+                    padding: 10px 18px;
+                    border-radius: 12px;
+                    background: #154f14;
+                    color: #fff;
+                    text-decoration: none;
+                    font-weight: 600;
+                ">
+                    + Добавить вопрос
+                </a>
+            </div>
 
             {% if questions %}
-                <ul style="padding-left: 20px;">
+                <div style="display: flex; flex-direction: column; gap: 18px;">
                     {% for q in questions %}
-                        <li style="margin-bottom: 10px; color: #355535;">
-                            {{ q.text }}
-                        </li>
+                        <div style="
+                            background: #f7fff6;
+                            border: 1px solid #cfe7cc;
+                            border-radius: 16px;
+                            padding: 18px;
+                        ">
+                            <div style="margin-bottom: 10px;">
+                                <div style="font-size: 13px; color: #5b735b; margin-bottom: 6px;">
+                                    Вопрос {{ forloop.counter }} | Тип: {{ q.get_question_type_display }} | Порядок: {{ q.order }}
+                                </div>
+
+                                <div style="font-size: 17px; color: #234b23; font-weight: 600; line-height: 1.4;">
+                                    {{ q.text }}
+                                </div>
+                            </div>
+
+                            <div style="
+                                display: flex;
+                                gap: 10px;
+                                flex-wrap: wrap;
+                                margin-bottom: 14px;
+                            ">
+                                <a href="{% url 'question_edit' q.id %}" style="
+                                    padding: 8px 14px;
+                                    border-radius: 10px;
+                                    background: #56b947;
+                                    color: #fff;
+                                    text-decoration: none;
+                                    font-size: 14px;
+                                    font-weight: 600;
+                                ">
+                                    ✏️ Редактировать вопрос
+                                </a>
+
+                                <a href="{% url 'question_delete' q.id %}" style="
+                                    padding: 8px 14px;
+                                    border-radius: 10px;
+                                    background: #b93f3f;
+                                    color: #fff;
+                                    text-decoration: none;
+                                    font-size: 14px;
+                                    font-weight: 600;
+                                ">
+                                    🗑️ Удалить вопрос
+                                </a>
+
+                                {% if q.question_type != 'text' %}
+                                    <a href="{% url 'option_add' q.id %}" style="
+                                        padding: 8px 14px;
+                                        border-radius: 10px;
+                                        background: #234b23;
+                                        color: #fff;
+                                        text-decoration: none;
+                                        font-size: 14px;
+                                        font-weight: 600;
+                                    ">
+                                        + Добавить вариант
+                                    </a>
+                                {% endif %}
+                            </div>
+
+                            {% if q.question_type != 'text' %}
+                                {% if q.options.all %}
+                                    <div style="
+                                        background: #edf8eb;
+                                        border-radius: 12px;
+                                        padding: 14px;
+                                    ">
+                                        <div style="font-weight: 600; color: #234b23; margin-bottom: 10px;">
+                                            Варианты ответа
+                                        </div>
+
+                                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                                            {% for option in q.options.all %}
+                                                <div style="
+                                                    display: flex;
+                                                    justify-content: space-between;
+                                                    align-items: center;
+                                                    gap: 12px;
+                                                    flex-wrap: wrap;
+                                                    background: #fff;
+                                                    border-radius: 10px;
+                                                    padding: 12px;
+                                                    border: 1px solid #d8ead5;
+                                                ">
+                                                    <div style="color: #355535; flex: 1;">
+                                                        {{ option.text }}
+                                                        {% if option.is_correct %}
+                                                            <span style="
+                                                                margin-left: 8px;
+                                                                display: inline-block;
+                                                                padding: 4px 8px;
+                                                                border-radius: 999px;
+                                                                background: #d7f3d1;
+                                                                color: #1f6b1f;
+                                                                font-size: 12px;
+                                                                font-weight: 700;
+                                                            ">
+                                                                правильный
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+
+                                                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                                        <a href="{% url 'option_edit' option.id %}" style="
+                                                            padding: 6px 12px;
+                                                            border-radius: 10px;
+                                                            background: #56b947;
+                                                            color: #fff;
+                                                            text-decoration: none;
+                                                            font-size: 13px;
+                                                        ">
+                                                            Изменить
+                                                        </a>
+
+                                                        <a href="{% url 'option_delete' option.id %}" style="
+                                                            padding: 6px 12px;
+                                                            border-radius: 10px;
+                                                            background: #b93f3f;
+                                                            color: #fff;
+                                                            text-decoration: none;
+                                                            font-size: 13px;
+                                                        ">
+                                                            Удалить
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <p style="margin: 0; color: #5b735b; font-size: 14px;">
+                                        Вариантов ответа пока нет.
+                                    </p>
+                                {% endif %}
+                            {% else %}
+                                <p style="
+                                    margin: 0;
+                                    color: #5b735b;
+                                    font-size: 14px;
+                                    background: #edf8eb;
+                                    border-radius: 12px;
+                                    padding: 12px;
+                                ">
+                                    Для вопроса с развёрнутым ответом варианты не нужны.
+                                </p>
+                            {% endif %}
+                        </div>
                     {% endfor %}
-                </ul>
+                </div>
             {% else %}
-                <p style="color: #4f6650;">
+                <p style="color: #4f6650; margin: 0;">
                     Вопросов пока нет. Добавьте первый вопрос.
                 </p>
             {% endif %}
-
         </div>
 
     </div>

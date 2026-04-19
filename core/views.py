@@ -3,8 +3,8 @@ from django.http import HttpResponse
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
-from .forms import CustomUserCreationForm, TestForm
-from .models import Test, Teacher, Student, Question
+from .forms import CustomUserCreationForm, TestForm, QuestionForm, OptionForm
+from .models import Test, Teacher, Student, Question, Option
 
 
 def home(request):
@@ -216,10 +216,12 @@ def question_edit(request, question_id):
     else:  
         form = QuestionForm(instance=question)  
     return render(request, 'tests/question_form.html', {
-        'form': form,
-        'question': question,
-        'title': 'Редактировать вопрос'
-    })
+    'form': form,
+    'question': question,
+    'test': question.test,
+    'title': 'Редактировать вопрос'
+})
+    
 
 #удаление вопроса
 @login_required
