@@ -7,10 +7,24 @@
     <div class="auth-card">
         <h1 class="auth-title">Регистрация</h1>
 
-    
         <form class="auth-form" method="post">
             {% csrf_token %}
             <input type="hidden" name="role" value="{{ role }}">
+
+            {% if form.non_field_errors %}
+                <div style="
+                    color: red;
+                    margin-bottom: 15px;
+                    padding: 10px;
+                    background: #ffeeee;
+                    border-radius: 8px;
+                    text-align: center;
+                ">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
 
             <!-- ЛОГИН -->
             <input 
