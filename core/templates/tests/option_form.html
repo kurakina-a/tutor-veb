@@ -1,0 +1,7 @@
+<h1>{{ title }}</h1>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Сохранить</button>
+</form>
+<a href="{% url 'test_edit' question.test.id %}">Отмена</a>

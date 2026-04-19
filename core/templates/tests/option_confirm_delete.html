@@ -1,0 +1,7 @@
+<h1>Удалить вариант?</h1>
+<p>Удалить вариант: "{{ option.text }}"</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit">Да, удалить</button>
+    <a href="{% url 'test_edit' option.question.test.id %}">Отмена</a>
+</form>

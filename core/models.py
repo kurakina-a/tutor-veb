@@ -25,16 +25,28 @@ class Test(models.Model):
         return self.title  #при выводе вместо Test object будет написано название теста
 
 class Question(models.Model):
-    test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='questions') 
+    QUESTION_TYPES = [
+        ('single', 'Один вариант'),
+        ('multiple', 'Множественный выбор'),
+        ('text', 'Развёрнутый ответ'),
+    ]
+    test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='questions')
     text = models.TextField(verbose_name='Текст вопроса')
-    order = models.PositiveIntegerField(default=0) #порядок вопроса, чтобы учитель сам решил какой у них будет порядок
+    question_type = models.CharField(max_length=10, choices=QUESTION_TYPES, default='single', verbose_name='Тип вопроса')
+    order = models.PositiveIntegerField(default=0, verbose_name='Порядок')
+    
     def __str__(self):
-        return self.text[:50]  # первые 50 символов вопроса
+        return f"{self.text[:50]}... ({self.get_question_type_display()})"
+    
+    class Meta:
+        ordering = ['order', 'id']
 
 class Option(models.Model): #варианты ответа на вопрос
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='options')
-    text = models.CharField(max_length=300) #текст варианта ответа    
-    is_correct = models.BooleanField(default=False) #правильный или нет?
+    text = models.CharField(max_length=300, verbose_name='Текст варианта')
+    is_correct = models.BooleanField(default=False, verbose_name='Правильный?')
+    def __str__(self):
+        return self.text
 
 class TestResult(models.Model): #результат прохождения теста
     STATUS_CHOICES = [

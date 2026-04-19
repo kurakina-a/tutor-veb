@@ -182,3 +182,100 @@ def test_delete(request, test_id):
         'test': test,
         'user': request.user,
     })
+
+#добавление нового вопроса к тесту
+@login_required  
+def question_add(request, test_id):
+    #найти тест, к которому добавляем вопрос
+    test = get_object_or_404(Test, id=test_id, teacher=request.user)
+    if request.method == 'POST': 
+        form = QuestionForm(request.POST)  #данные из формы
+        if form.is_valid():  
+            question = form.save(commit=False)  
+            question.test = test  #привязка вопроса к тесту
+            question.save()  #сохраняем в базу данных
+            return redirect('test_edit', test_id=test.id)  
+    else:  
+        form = QuestionForm()  # пустая форма, если пользователь просто открыл страницу
+    return render(request, 'tests/question_form.html', {
+        'form': form,
+        'test': test,
+        'title': 'Добавить вопрос'  
+    })
+
+#редактирование существующего вопроса
+@login_required
+def question_edit(request, question_id):
+    #найти вопрос, который нужно редактировать
+    question = get_object_or_404(Question, id=question_id, test__teacher=request.user)
+    if request.method == 'POST':  
+        form = QuestionForm(request.POST, instance=question)  #форма с данными вопроса
+        if form.is_valid():
+            form.save()  
+            return redirect('test_edit', test_id=question.test.id)  
+    else:  
+        form = QuestionForm(instance=question)  
+    return render(request, 'tests/question_form.html', {
+        'form': form,
+        'question': question,
+        'title': 'Редактировать вопрос'
+    })
+
+#удаление вопроса
+@login_required
+def question_delete(request, question_id):
+    # Найти вопрос
+    question = get_object_or_404(Question, id=question_id, test__teacher=request.user)
+    test_id = question.test.id  #запоминаем ID теста, чтобы вернуться к нему после удаления
+    if request.method == 'POST':  #подтверждение удаления ("Да")
+        question.delete()  
+        return redirect('test_edit', test_id=test_id)  
+    return render(request, 'tests/question_confirm_delete.html', {'question': question})
+
+#добавление варианта ответа к вопросу
+@login_required
+def option_add(request, question_id):
+    #найти вопрос, к которому добавляется вариант
+    question = get_object_or_404(Question, id=question_id, test__teacher=request.user)
+    if request.method == 'POST':
+        form = OptionForm(request.POST)
+        if form.is_valid():
+            option = form.save(commit=False)  
+            option.question = question  #привязываем к вопросу
+            option.save()
+            return redirect('test_edit', test_id=question.test.id)  
+    else:
+        form = OptionForm()
+    return render(request, 'tests/option_form.html', {
+        'form': form,
+        'question': question,
+        'title': 'Добавить вариант ответа'
+    })
+
+#редактирование варианта ответа
+@login_required
+def option_edit(request, option_id):
+    #найти вариант
+    option = get_object_or_404(Option, id=option_id, question__test__teacher=request.user)
+    if request.method == 'POST':
+        form = OptionForm(request.POST, instance=option)
+        if form.is_valid():
+            form.save()
+            return redirect('test_edit', test_id=option.question.test.id)
+    else:
+        form = OptionForm(instance=option)
+    return render(request, 'tests/option_form.html', {
+        'form': form,
+        'option': option,
+        'title': 'Редактировать вариант'
+    })
+
+#удаление варианта ответа
+@login_required
+def option_delete(request, option_id):
+    option = get_object_or_404(Option, id=option_id, question__test__teacher=request.user)
+    test_id = option.question.test.id  #запоминаем ID теста
+    if request.method == 'POST':
+        option.delete()
+        return redirect('test_edit', test_id=test_id)
+    return render(request, 'tests/option_confirm_delete.html', {'option': option})

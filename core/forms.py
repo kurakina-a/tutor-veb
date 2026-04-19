@@ -72,8 +72,7 @@ class TestForm(forms.ModelForm):
 class QuestionForm(forms.ModelForm):
     class Meta:
         model = Question
-        fields = ['text', 'order']
-
+        fields = ['text', 'question_type', 'order']
 
 class OptionForm(forms.ModelForm):
     class Meta:
