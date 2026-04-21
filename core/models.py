@@ -18,7 +18,6 @@ class Student(models.Model):
 class Test(models.Model):
     title = models.CharField(max_length=200, verbose_name='Название теста')
     description = models.TextField(blank=True, verbose_name='Описание') #описание теста (true - может быть пустым)
-    deadline = models.DateTimeField(null=True, blank=True, verbose_name='Дедлайн')
     teacher = models.ForeignKey('User', on_delete=models.CASCADE, related_name='tests') #связь с User, CASCADE - если удалить учителя, удалится тест
     created_at = models.DateTimeField(auto_now_add=True) #дата и время создания записываются автоматически
     def __str__(self): 
@@ -56,6 +55,7 @@ class TestResult(models.Model): #результат прохождения те�
     ]
     student = models.ForeignKey('User', on_delete=models.CASCADE, related_name='test_results')
     test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='student_results')
+    deadline = models.DateTimeField(null=True, blank=True, verbose_name='Дедлайн')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='assigned')
     score = models.PositiveIntegerField(null=True, blank=True, verbose_name='Баллы')
     started_at = models.DateTimeField(null=True, blank=True, verbose_name='Начало прохождения')
