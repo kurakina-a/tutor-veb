@@ -54,17 +54,25 @@ class CustomUserCreationForm(forms.ModelForm):
 
 
 class TestForm(forms.ModelForm):
+    questions_data = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput()
+    )
+
     class Meta:
         model = Test
         fields = ['title', 'description']
-        
-
+        widgets = {
+            'title': forms.TextInput(attrs={'placeholder': 'Название теста'}),
+            'description': forms.Textarea(attrs={'placeholder': 'Описание теста', 'rows': 3}),
+        }
 
 
 class QuestionForm(forms.ModelForm):
     class Meta:
         model = Question
         fields = ['text', 'question_type', 'order']
+
 
 class OptionForm(forms.ModelForm):
     class Meta:
