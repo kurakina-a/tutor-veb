@@ -1,6 +1,5 @@
 from django import forms
 from .models import User, Test, Question, Option
-from django.utils import timezone
 import re
 
 
@@ -57,16 +56,9 @@ class CustomUserCreationForm(forms.ModelForm):
 class TestForm(forms.ModelForm):
     class Meta:
         model = Test
-        fields = ['title', 'description', 'deadline']
-        widgets = {
-            'deadline': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
-        }
+        fields = ['title', 'description']
+        
 
-    def clean_deadline(self):
-        deadline = self.cleaned_data.get('deadline')
-        if deadline and deadline < timezone.now():
-            raise forms.ValidationError("Дедлайн указан неверно!")
-        return deadline
 
 
 class QuestionForm(forms.ModelForm):

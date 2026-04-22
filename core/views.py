@@ -44,6 +44,7 @@ def register(request):
             if user.is_teacher:
                 return redirect('teacher_dashboard')
             return redirect('student_dashboard')
+        else:print("Ошибки формы:", form.errors)
     else:
         form = CustomUserCreationForm()
 
@@ -200,7 +201,8 @@ def question_add(request, test_id):
     return render(request, 'tests/question_form.html', {
         'form': form,
         'test': test,
-        'title': 'Добавить вопрос'  
+        'title': 'Добавить вопрос',
+        'user': request.user,  
     })
 
 #редактирование существующего вопроса
@@ -216,12 +218,11 @@ def question_edit(request, question_id):
     else:  
         form = QuestionForm(instance=question)  
     return render(request, 'tests/question_form.html', {
-    'form': form,
-    'question': question,
-    'test': question.test,
-    'title': 'Редактировать вопрос'
-})
-    
+        'form': form,
+        'question': question,
+        'title': 'Редактировать вопрос',
+        'user': request.user,
+    })
 
 #удаление вопроса
 @login_required
@@ -232,7 +233,7 @@ def question_delete(request, question_id):
     if request.method == 'POST':  #подтверждение удаления ("Да")
         question.delete()  
         return redirect('test_edit', test_id=test_id)  
-    return render(request, 'tests/question_confirm_delete.html', {'question': question})
+    return render(request, 'tests/question_confirm_delete.html', {'question': question, 'user': request.user,})
 
 #добавление варианта ответа к вопросу
 @login_required
@@ -251,7 +252,8 @@ def option_add(request, question_id):
     return render(request, 'tests/option_form.html', {
         'form': form,
         'question': question,
-        'title': 'Добавить вариант ответа'
+        'title': 'Добавить вариант ответа',
+        'user': request.user,
     })
 
 #редактирование варианта ответа
@@ -269,7 +271,8 @@ def option_edit(request, option_id):
     return render(request, 'tests/option_form.html', {
         'form': form,
         'option': option,
-        'title': 'Редактировать вариант'
+        'title': 'Редактировать вариант',
+        'user': request.user,
     })
 
 #удаление варианта ответа
@@ -280,4 +283,4 @@ def option_delete(request, option_id):
     if request.method == 'POST':
         option.delete()
         return redirect('test_edit', test_id=test_id)
-    return render(request, 'tests/option_confirm_delete.html', {'option': option})
+    return render(request, 'tests/option_confirm_delete.html', {'option': option,'user': request.user,})
