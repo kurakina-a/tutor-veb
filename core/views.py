@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from .forms import CustomUserCreationForm, TestForm, QuestionForm, OptionForm
 from .models import Test, Teacher, Student, Question, Option
+import json
 
 
 def home(request):
@@ -44,7 +45,8 @@ def register(request):
             if user.is_teacher:
                 return redirect('teacher_dashboard')
             return redirect('student_dashboard')
-        else:print("Ошибки формы:", form.errors)
+        else:
+            print("Ошибки формы:", form.errors)
     else:
         form = CustomUserCreationForm()
 
@@ -129,23 +131,137 @@ class CustomLoginView(LoginView):
 @login_required
 def test_list(request):
     tests = Test.objects.filter(teacher=request.user)
-    return render(request, 'tests/list.html', {'tests': tests})
+    return render(request, 'tests/list.html', {
+        'tests': tests,
+        'user': request.user,
+    })
+
+
+def _build_questions_data(test):
+    result = []
+
+    for question in test.questions.all().order_by('order', 'id'):
+        item = {
+            'text': question.text,
+            'question_type': question.question_type,
+            'options': []
+        }
+
+        if question.question_type != 'text':
+            for option in question.options.all():
+                item['options'].append({
+                    'text': option.text,
+                    'is_correct': option.is_correct
+                })
+
+        result.append(item)
+
+    return result
+
+
+def _parse_questions_from_post(request):
+    raw = request.POST.get('questions_data', '')
+    if not raw:
+        return []
+    try:
+        data = json.loads(raw)
+        return data if isinstance(data, list) else []
+    except json.JSONDecodeError:
+        return []
+
+
+def _validate_questions_data(questions_data):
+    errors = []
+
+    if not questions_data:
+        errors.append('Добавьте хотя бы 1 вопрос')
+        return errors
+
+    for index, question in enumerate(questions_data, start=1):
+        text = (question.get('text') or '').strip()
+        question_type = question.get('question_type') or 'single'
+        options = question.get('options') or []
+
+        if not text:
+            errors.append(f'Вопрос {index}: заполните текст вопроса')
+            continue
+
+        if question_type in ['single', 'multiple']:
+            non_empty_options = []
+            for option in options:
+                option_text = (option.get('text') or '').strip()
+                if option_text:
+                    non_empty_options.append(option)
+
+            if len(non_empty_options) < 2:
+                errors.append(f'Вопрос {index}: добавьте минимум 2 варианта ответа')
+                continue
+
+            correct_count = sum(1 for option in non_empty_options if option.get('is_correct'))
+
+            if question_type == 'single' and correct_count != 1:
+                errors.append(f'Вопрос {index}: для "Один вариант" должен быть ровно 1 правильный ответ')
+
+            if question_type == 'multiple' and correct_count < 1:
+                errors.append(f'Вопрос {index}: для "Множественный выбор" нужен хотя бы 1 правильный ответ')
+
+    return errors
 
 
 @login_required
 def test_create(request):
     if request.method == 'POST':
         form = TestForm(request.POST)
-        if form.is_valid():
+        posted_questions_data = _parse_questions_from_post(request)
+        question_errors = _validate_questions_data(posted_questions_data)
+
+        if form.is_valid() and not question_errors:
             test = form.save(commit=False)
             test.teacher = request.user
             test.save()
-            return redirect('test_edit', test_id=test.id)
-    else:
-        form = TestForm()
+
+            for index, q in enumerate(posted_questions_data, start=1):
+                text = (q.get('text') or '').strip()
+                question_type = q.get('question_type') or 'single'
+                options = q.get('options') or []
+
+                if not text:
+                    continue
+
+                question = Question.objects.create(
+                    test=test,
+                    text=text,
+                    question_type=question_type,
+                    order=index
+                )
+
+                if question_type != 'text':
+                    for opt in options:
+                        option_text = (opt.get('text') or '').strip()
+                        if not option_text:
+                            continue
+
+                        Option.objects.create(
+                            question=question,
+                            text=option_text,
+                            is_correct=bool(opt.get('is_correct'))
+                        )
+
+            return redirect('test_list')
+
+        return render(request, 'tests/create.html', {
+            'form': form,
+            'questions_data': posted_questions_data,
+            'question_errors': question_errors,
+            'user': request.user,
+        })
+
+    form = TestForm()
 
     return render(request, 'tests/create.html', {
         'form': form,
+        'questions_data': [],
+        'question_errors': [],
         'user': request.user,
     })
 
@@ -153,20 +269,61 @@ def test_create(request):
 @login_required
 def test_edit(request, test_id):
     test = get_object_or_404(Test, id=test_id, teacher=request.user)
-    questions = Question.objects.filter(test=test).order_by('order', 'id')
 
     if request.method == 'POST':
         form = TestForm(request.POST, instance=test)
-        if form.is_valid():
-            form.save()
+        posted_questions_data = _parse_questions_from_post(request)
+        question_errors = _validate_questions_data(posted_questions_data)
+
+        if form.is_valid() and not question_errors:
+            test = form.save()
+
+            test.questions.all().delete()
+
+            for index, q in enumerate(posted_questions_data, start=1):
+                text = (q.get('text') or '').strip()
+                question_type = q.get('question_type') or 'single'
+                options = q.get('options') or []
+
+                if not text:
+                    continue
+
+                question = Question.objects.create(
+                    test=test,
+                    text=text,
+                    question_type=question_type,
+                    order=index
+                )
+
+                if question.question_type != 'text':
+                    for opt in options:
+                        option_text = (opt.get('text') or '').strip()
+                        if not option_text:
+                            continue
+
+                        Option.objects.create(
+                            question=question,
+                            text=option_text,
+                            is_correct=bool(opt.get('is_correct'))
+                        )
+
             return redirect('test_list')
-    else:
-        form = TestForm(instance=test)
+
+        return render(request, 'tests/edit.html', {
+            'form': form,
+            'test': test,
+            'questions_data': posted_questions_data,
+            'question_errors': question_errors,
+            'user': request.user,
+        })
+
+    form = TestForm(instance=test)
 
     return render(request, 'tests/edit.html', {
         'form': form,
         'test': test,
-        'questions': questions,
+        'questions_data': _build_questions_data(test),
+        'question_errors': [],
         'user': request.user,
     })
 
@@ -184,69 +341,69 @@ def test_delete(request, test_id):
         'user': request.user,
     })
 
-#добавление нового вопроса к тесту
-@login_required  
+
+@login_required
 def question_add(request, test_id):
-    #найти тест, к которому добавляем вопрос
     test = get_object_or_404(Test, id=test_id, teacher=request.user)
-    if request.method == 'POST': 
-        form = QuestionForm(request.POST)  #данные из формы
-        if form.is_valid():  
-            question = form.save(commit=False)  
-            question.test = test  #привязка вопроса к тесту
-            question.save()  #сохраняем в базу данных
-            return redirect('test_edit', test_id=test.id)  
-    else:  
-        form = QuestionForm()  # пустая форма, если пользователь просто открыл страницу
+    if request.method == 'POST':
+        form = QuestionForm(request.POST)
+        if form.is_valid():
+            question = form.save(commit=False)
+            question.test = test
+            question.save()
+            return redirect('test_edit', test_id=test.id)
+    else:
+        form = QuestionForm()
     return render(request, 'tests/question_form.html', {
         'form': form,
         'test': test,
         'title': 'Добавить вопрос',
-        'user': request.user,  
+        'user': request.user,
     })
 
-#редактирование существующего вопроса
+
 @login_required
 def question_edit(request, question_id):
-    #найти вопрос, который нужно редактировать
     question = get_object_or_404(Question, id=question_id, test__teacher=request.user)
-    if request.method == 'POST':  
-        form = QuestionForm(request.POST, instance=question)  #форма с данными вопроса
+    if request.method == 'POST':
+        form = QuestionForm(request.POST, instance=question)
         if form.is_valid():
-            form.save()  
-            return redirect('test_edit', test_id=question.test.id)  
-    else:  
-        form = QuestionForm(instance=question)  
+            form.save()
+            return redirect('test_edit', test_id=question.test.id)
+    else:
+        form = QuestionForm(instance=question)
     return render(request, 'tests/question_form.html', {
         'form': form,
         'question': question,
+        'test': question.test,
         'title': 'Редактировать вопрос',
         'user': request.user,
     })
 
-#удаление вопроса
+
 @login_required
 def question_delete(request, question_id):
-    # Найти вопрос
     question = get_object_or_404(Question, id=question_id, test__teacher=request.user)
-    test_id = question.test.id  #запоминаем ID теста, чтобы вернуться к нему после удаления
-    if request.method == 'POST':  #подтверждение удаления ("Да")
-        question.delete()  
-        return redirect('test_edit', test_id=test_id)  
-    return render(request, 'tests/question_confirm_delete.html', {'question': question, 'user': request.user,})
+    test_id = question.test.id
+    if request.method == 'POST':
+        question.delete()
+        return redirect('test_edit', test_id=test_id)
+    return render(request, 'tests/question_confirm_delete.html', {
+        'question': question,
+        'user': request.user,
+    })
 
-#добавление варианта ответа к вопросу
+
 @login_required
 def option_add(request, question_id):
-    #найти вопрос, к которому добавляется вариант
     question = get_object_or_404(Question, id=question_id, test__teacher=request.user)
     if request.method == 'POST':
         form = OptionForm(request.POST)
         if form.is_valid():
-            option = form.save(commit=False)  
-            option.question = question  #привязываем к вопросу
+            option = form.save(commit=False)
+            option.question = question
             option.save()
-            return redirect('test_edit', test_id=question.test.id)  
+            return redirect('test_edit', test_id=question.test.id)
     else:
         form = OptionForm()
     return render(request, 'tests/option_form.html', {
@@ -256,10 +413,9 @@ def option_add(request, question_id):
         'user': request.user,
     })
 
-#редактирование варианта ответа
+
 @login_required
 def option_edit(request, option_id):
-    #найти вариант
     option = get_object_or_404(Option, id=option_id, question__test__teacher=request.user)
     if request.method == 'POST':
         form = OptionForm(request.POST, instance=option)
@@ -275,12 +431,15 @@ def option_edit(request, option_id):
         'user': request.user,
     })
 
-#удаление варианта ответа
+
 @login_required
 def option_delete(request, option_id):
     option = get_object_or_404(Option, id=option_id, question__test__teacher=request.user)
-    test_id = option.question.test.id  #запоминаем ID теста
+    test_id = option.question.test.id
     if request.method == 'POST':
         option.delete()
         return redirect('test_edit', test_id=test_id)
-    return render(request, 'tests/option_confirm_delete.html', {'option': option,'user': request.user,})
+    return render(request, 'tests/option_confirm_delete.html', {
+        'option': option,
+        'user': request.user,
+    })

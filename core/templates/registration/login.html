@@ -23,45 +23,85 @@
             Вход в аккаунт
         </h1>
 
-      
-
-        <!-- ОШИБКИ -->
-        {% if form.non_field_errors %}
-            <div style="color: red; margin-bottom: 20px; padding: 10px; background: #ffeeee; border-radius: 8px; text-align: center;">
-                {% for error in form.non_field_errors %}
-                    {{ error }}
-                {% endfor %}
-            </div>
-        {% elif form.errors %}
-            <div style="color: red; margin-bottom: 20px; padding: 10px; background: #ffeeee; border-radius: 8px; text-align: center;">
-                Неверный логин или пароль
-            </div>
+        {% if request.method == 'POST' %}
+            {% if not request.POST.username %}
+                <div style="color: red; margin-bottom: 20px; padding: 10px; background: #ffeeee; border-radius: 8px; text-align: center;">
+                    Заполните обязательные поля
+                </div>
+            {% elif not request.POST.password %}
+                <div style="color: red; margin-bottom: 20px; padding: 10px; background: #ffeeee; border-radius: 8px; text-align: center;">
+                    Заполните обязательные поля
+                </div>
+            {% elif form.non_field_errors %}
+                <div style="color: red; margin-bottom: 20px; padding: 10px; background: #ffeeee; border-radius: 8px; text-align: center;">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% elif form.errors %}
+                <div style="color: red; margin-bottom: 20px; padding: 10px; background: #ffeeee; border-radius: 8px; text-align: center;">
+                    Неверный логин или пароль
+                </div>
+            {% endif %}
         {% endif %}
 
-        <!-- ФОРМА -->
         <form method="post" action="{% url 'login' %}?role={{ role }}" style="display: flex; flex-direction: column; gap: 20px;">
             {% csrf_token %}
-
             <input type="hidden" name="role" value="{{ role }}">
 
-            <!-- ЛОГИН -->
-            <input
-                type="text"
-                name="username"
-                placeholder="Логин"
-                value="{{ request.POST.username }}"
-                style="width: 100%; height: 58px; border-radius: 16px; border: 1px solid #d8dde0; background: #ffffff; font-size: 18px; padding: 0 18px; box-sizing: border-box;"
-            >
+            {% if request.method == 'POST' %}
+                {% if not request.POST.username %}
+                    <input
+                        type="text"
+                        name="username"
+                        placeholder="Логин"
+                        value="{{ request.POST.username }}"
+                        style="width: 100%; height: 58px; border-radius: 16px; border: 2px solid red; background: #ffffff; font-size: 18px; padding: 0 18px; box-sizing: border-box;"
+                    >
+                {% else %}
+                    <input
+                        type="text"
+                        name="username"
+                        placeholder="Логин"
+                        value="{{ request.POST.username }}"
+                        style="width: 100%; height: 58px; border-radius: 16px; border: 1px solid #d8dde0; background: #ffffff; font-size: 18px; padding: 0 18px; box-sizing: border-box;"
+                    >
+                {% endif %}
+            {% else %}
+                <input
+                    type="text"
+                    name="username"
+                    placeholder="Логин"
+                    value=""
+                    style="width: 100%; height: 58px; border-radius: 16px; border: 1px solid #d8dde0; background: #ffffff; font-size: 18px; padding: 0 18px; box-sizing: border-box;"
+                >
+            {% endif %}
 
-            <!-- ПАРОЛЬ -->
-            <input
-                type="password"
-                name="password"
-                placeholder="Пароль"
-                style="width: 100%; height: 58px; border-radius: 16px; border: 1px solid #d8dde0; background: #ffffff; font-size: 18px; padding: 0 18px; box-sizing: border-box;"
-            >
+            {% if request.method == 'POST' %}
+                {% if not request.POST.password %}
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Пароль"
+                        style="width: 100%; height: 58px; border-radius: 16px; border: 2px solid red; background: #ffffff; font-size: 18px; padding: 0 18px; box-sizing: border-box;"
+                    >
+                {% else %}
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Пароль"
+                        style="width: 100%; height: 58px; border-radius: 16px; border: 1px solid #d8dde0; background: #ffffff; font-size: 18px; padding: 0 18px; box-sizing: border-box;"
+                    >
+                {% endif %}
+            {% else %}
+                <input
+                    type="password"
+                    name="password"
+                    placeholder="Пароль"
+                    style="width: 100%; height: 58px; border-radius: 16px; border: 1px solid #d8dde0; background: #ffffff; font-size: 18px; padding: 0 18px; box-sizing: border-box;"
+                >
+            {% endif %}
 
-            <!-- КНОПКА -->
             <button
                 type="submit"
                 style="margin-top: 16px; width: 100%; height: 60px; border-radius: 16px; border: none; background: #154f14; color: #ffffff; font-size: 20px; font-weight: 700; cursor: pointer;"
@@ -70,7 +110,6 @@
             </button>
         </form>
 
-        <!-- ССЫЛКА НА РЕГИСТРАЦИЮ -->
         <p style="margin-top: 26px; text-align: center; font-size: 16px; color: #4f6650;">
             Нет аккаунта?
             <a href="{% url 'register' %}?role={{ role }}" style="color: #234b23; font-weight: 700; text-decoration: none;">
