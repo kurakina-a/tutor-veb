@@ -50,8 +50,8 @@ class Option(models.Model): #варианты ответа на вопрос
 class TestResult(models.Model): #результат прохождения теста
     STATUS_CHOICES = [
         ('assigned', 'Назначен'),
-        ('in_progress', 'В процессе'),
-        ('completed', 'Завершён'),
+        ('pending_review', 'На проверке'),
+        ('completed', 'Выполнен'),
     ]
     student = models.ForeignKey('User', on_delete=models.CASCADE, related_name='test_results')
     test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='student_results')

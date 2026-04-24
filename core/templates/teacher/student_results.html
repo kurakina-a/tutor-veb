@@ -1,0 +1,77 @@
+{% extends 'base_auth.html' %}
+
+{% block title %}Работы ученика{% endblock %}
+
+{% block content %}
+<section style="min-height: 100vh; background: #d8f0d7; padding: 48px 24px 80px;">
+    <div style="width: 100%; max-width: 1080px; margin: 0 auto;">
+
+        <h1 style="margin: 0 0 12px; font-size: 32px; font-weight: 700; color: #204320;">
+            Работы ученика
+        </h1>
+
+        <p style="margin: 0 0 28px; font-size: 18px; color: #355535;">
+            {{ student.user.first_name }} {{ student.user.last_name }} — {{ student.user.username }}
+        </p>
+
+        <a href="{% url 'my_students' %}" style="display: inline-flex; align-items: center; justify-content: center; height: 42px; padding: 0 18px; border-radius: 12px; background: #edf8e8; color: #264726; text-decoration: none; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(68, 102, 68, 0.08); margin-bottom: 22px;">
+            Назад к ученикам
+        </a>
+
+        {% if rows %}
+            <div style="display: flex; flex-direction: column; gap: 18px;">
+                {% for row in rows %}
+                    <div style="background: #eaf8e8; border-radius: 20px; padding: 22px 24px; box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08); display: flex; justify-content: space-between; align-items: center; gap: 20px;">
+
+                        <div>
+                            <h2 style="margin: 0 0 8px; font-size: 20px; color: #204320;">
+                                {{ row.result.test.title }}
+                            </h2>
+
+                            <p style="margin: 0 0 8px; color: #5f735f;">
+                                Статус: <strong>{{ row.display_status }}</strong>
+                            </p>
+
+                            {% if row.result.deadline %}
+                                <p style="margin: 0 0 8px; color: #5f735f;">
+                                    Дедлайн: {{ row.result.deadline|date:"d.m.Y H:i" }}
+                                </p>
+                            {% else %}
+                                <p style="margin: 0 0 8px; color: #5f735f;">
+                                    Дедлайн не установлен
+                                </p>
+                            {% endif %}
+
+                            {% if row.result.completed_at %}
+                                <p style="margin: 0; color: #5f735f;">
+                                    Отправлен: {{ row.result.completed_at|date:"d.m.Y H:i" }}
+                                </p>
+                            {% endif %}
+                        </div>
+
+                        {% if row.result.status == 'pending_review' %}
+                            <a href="{% url 'review_text_answers' row.result.id %}" style="display: inline-flex; align-items: center; justify-content: center; height: 38px; padding: 0 18px; border-radius: 12px; background: #49b347; color: white; text-decoration: none; font-size: 15px; font-weight: 700;">
+                                Проверить работу
+                            </a>
+                        {% elif row.result.status == 'completed' %}
+                            <a href="{% url 'teacher_result_detail' row.result.id %}" style="display: inline-flex; align-items: center; justify-content: center; height: 38px; padding: 0 18px; border-radius: 12px; background: #edf8e8; color: #264726; text-decoration: none; font-size: 15px; font-weight: 700;">
+                                Посмотреть работу
+                            </a>
+                        {% else %}
+                            <span style="color: #6d806d; font-weight: 700;">
+                                Работа ещё не отправлена
+                            </span>
+                        {% endif %}
+
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="background: #eaf8e8; border-radius: 20px; padding: 34px; text-align: center; color: #5f5f5f; font-size: 18px; box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08);">
+                У этого ученика пока нет назначенных тестов
+            </div>
+        {% endif %}
+
+    </div>
+</section>
+{% endblock %}

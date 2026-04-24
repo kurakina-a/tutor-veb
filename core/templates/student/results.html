@@ -1,27 +1,88 @@
-<h1>Результаты теста: {{ test.title }}</h1>
+{% extends 'base_auth.html' %}
 
-<p><strong>Ваш результат:</strong> {{ test_result.score }} из {{ questions_details|length }}</p>
+{% block title %}Результаты теста{% endblock %}
 
-{% if test_result.completed_at %}
-    <p><strong>Завершён:</strong> {{ test_result.completed_at|date:"d.m.Y H:i" }}</p>
-{% endif %}
+{% block content %}
+<section style="min-height: 100vh; background: #d8f0d7; padding: 48px 24px 80px;">
+    <div style="width: 100%; max-width: 900px; margin: 0 auto;">
 
-<hr>
+        <h1 style="margin: 0 0 16px; font-size: 32px; font-weight: 700; color: #204320;">
+            Результаты теста
+        </h1>
 
-<h2>Детали ответов</h2>
+        <div style="background: #eaf8e8; border-radius: 20px; padding: 26px 30px; box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08); margin-bottom: 26px;">
+            <h2 style="margin: 0 0 14px; font-size: 24px; color: #204320;">
+                {{ test.title }}
+            </h2>
 
-{% for q in questions_details %}
-<div style="margin-bottom: 30px; padding: 10px; border: 1px solid #ddd;">
-    <p><strong>{{ forloop.counter }}. {{ q.text }}</strong></p>
-    
-    {% if q.type == 'text' %}
-        <p><strong>Ваш ответ:</strong> {{ q.user_answer|default:"(не введён)" }}</p>
-        <p><strong>Статус:</strong> {{ q.status }}</p>
-    {% else %}
-        <p><strong>Ваш ответ:</strong> {{ q.selected_option|default:"(не выбран)" }}</p>
-        <p><strong>Результат:</strong> {{ q.status }}</p>
-    {% endif %}
-</div>
-{% endfor %}
+            <p style="margin: 0 0 10px; font-size: 18px; color: #244224;">
+                <strong>Ваш результат:</strong>
+                {% if test_result.score != None %}
+                    {{ test_result.score }} из {{ questions_details|length }}
+                {% else %}
+                    Ожидает проверки
+                {% endif %}
+            </p>
 
-<a href="{% url 'my_assigned_tests' %}">← К списку тестов</a>
+            {% if test_result.completed_at %}
+                <p style="margin: 0; font-size: 16px; color: #5f735f;">
+                    Завершён: {{ test_result.completed_at|date:"d.m.Y H:i" }}
+                </p>
+            {% endif %}
+        </div>
+
+        <h2 style="margin: 0 0 18px; font-size: 24px; color: #204320;">
+            Детали ответов
+        </h2>
+
+        {% for q in questions_details %}
+            <div style="background: #eaf8e8; border-radius: 20px; padding: 24px 28px; box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08); margin-bottom: 18px;">
+
+                <h3 style="margin: 0 0 14px; font-size: 20px; color: #204320;">
+                    Вопрос {{ forloop.counter }}
+                </h3>
+
+                <p style="margin: 0 0 18px; font-size: 17px; color: #244224; font-weight: 700;">
+                    {{ q.text }}
+                </p>
+
+                {% if q.type == 'text' %}
+                    <div style="background: #edf8e8; border-radius: 14px; padding: 16px; margin-bottom: 14px;">
+                        <p style="margin: 0 0 8px; color: #5f735f; font-weight: 700;">
+                            Ваш ответ:
+                        </p>
+                        <p style="margin: 0; color: #244224; line-height: 1.5;">
+                            {{ q.user_answer|default:"(не введён)" }}
+                        </p>
+                    </div>
+
+                    <p style="margin: 0; font-weight: 700; color: #b07800;">
+                        {{ q.status }}
+                    </p>
+                {% else %}
+                    <p style="margin: 0 0 10px; font-size: 16px; color: #244224;">
+                        <strong>Ваш ответ:</strong>
+                        {{ q.selected_option|default:"(не выбран)" }}
+                    </p>
+
+                    {% if q.is_correct %}
+                        <p style="margin: 0; font-weight: 700; color: #2d8a2d;">
+                            Правильно
+                        </p>
+                    {% else %}
+                        <p style="margin: 0; font-weight: 700; color: #b03030;">
+                            Неправильно
+                        </p>
+                    {% endif %}
+                {% endif %}
+
+            </div>
+        {% endfor %}
+
+        <a href="{% url 'my_assigned_tests' %}" style="display: inline-flex; align-items: center; justify-content: center; height: 42px; padding: 0 20px; border-radius: 12px; background: #edf8e8; color: #264726; text-decoration: none; font-size: 16px; font-weight: 700; box-shadow: 0 4px 12px rgba(68, 102, 68, 0.08); margin-top: 10px;">
+            К списку тестов
+        </a>
+
+    </div>
+</section>
+{% endblock %}

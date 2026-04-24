@@ -8,6 +8,10 @@ from .forms import CustomUserCreationForm, TestForm, QuestionForm, OptionForm
 from .models import Test, Teacher, Student, Question, Option, User, TeacherStudent, Answer, TestResult
 import json
 from datetime import datetime
+from django.utils.dateparse import parse_datetime
+from django.utils.timezone import now
+from django.utils import timezone
+
 
 def home(request):
     return render(request, 'home.html')
@@ -95,9 +99,44 @@ def tests_list(request):
 
 @login_required
 def teacher_checking(request, student_id=None):
-    return HttpResponse("Страница просмотра работ учеников")
+    teacher = Teacher.objects.get(user=request.user)
 
+    teacher_student = get_object_or_404(
+        TeacherStudent,
+        teacher=teacher,
+        student_id=student_id
+    )
 
+    student = teacher_student.student
+
+    results = TestResult.objects.filter(
+        student=student.user,
+        test__teacher=request.user
+    ).select_related('test').order_by('-id')
+
+    rows = []
+
+    for result in results:
+        if result.deadline and result.deadline < timezone.now() and result.status == 'assigned':            display_status = 'Дедлайн просрочен'
+        elif result.status == 'assigned':
+            display_status = 'Назначен'
+        elif result.status == 'pending_review':
+            display_status = 'На проверке'
+        elif result.status == 'completed':
+            display_status = 'Выполнен'
+        else:
+            display_status = result.status
+
+        rows.append({
+            'result': result,
+            'display_status': display_status,
+        })
+
+    return render(request, 'teacher/student_results.html', {
+        'student': student,
+        'rows': rows,
+        'user': request.user,
+    })
 class CustomLoginView(LoginView):
     template_name = 'registration/login.html'
 
@@ -454,110 +493,178 @@ def my_students(request):
         'user': request.user,
     })
 
+
+
 @login_required
 def add_student(request):
     teacher = Teacher.objects.get(user=request.user)
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        try:
-            student_user = User.objects.get(username=username, is_student=True)
-            student = Student.objects.get(user=student_user)
-            teacher_student, created = TeacherStudent.objects.get_or_create(
-                teacher=teacher,
-                student=student
-            )
-            if created:
-                messages.success(request, f'Ученик {username} добавлен')
-            else:
-                messages.warning(request, f'Ученик {username} уже в вашем списке')
-        except User.DoesNotExist:
-            messages.error(request, f'Пользователь с логином {username} не найден')
-        except Student.DoesNotExist:
-            messages.error(request, f'Пользователь {username} не является учеником')
-        return redirect('my_students')
-    return render(request, 'teacher/add_student.html', {'user': request.user})
 
+    error = None
+    success = None
+    username_value = ''
+
+    if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+        username_value = username
+
+        if not username:
+            error = 'Введите логин ученика'
+        else:
+            try:
+                student_user = User.objects.get(username=username, is_student=True)
+                student = Student.objects.get(user=student_user)
+
+                teacher_student, created = TeacherStudent.objects.get_or_create(
+                    teacher=teacher,
+                    student=student
+                )
+
+                if created:
+                    success = f'Ученик {username} добавлен'
+                    username_value = ''
+                else:
+                    error = f'Ученик {username} уже есть в вашем списке'
+
+            except User.DoesNotExist:
+                error = 'Такого пользователя не существует'
+            except Student.DoesNotExist:
+                error = 'Этот пользователь не является учеником'
+
+    return render(request, 'teacher/add_student.html', {
+        'user': request.user,
+        'error': error,
+        'success': success,
+        'username_value': username_value,
+    })
+    
 #назначить тест ученику
 @login_required
 def assign_test(request, student_id):
     teacher = Teacher.objects.get(user=request.user)
+
     try:
         teacher_student = TeacherStudent.objects.get(teacher=teacher, student_id=student_id)
         student = teacher_student.student
     except TeacherStudent.DoesNotExist:
         messages.error(request, 'Этот ученик не привязан к вам')
         return redirect('my_students')
-    # Список тестов учителя
+
     tests = Test.objects.filter(teacher=request.user)
+
+    error = None
+    success = None
+
     if request.method == 'POST':
         test_id = request.POST.get('test_id')
-        deadline = request.POST.get('deadline')
-        try:
-            test = Test.objects.get(id=test_id, teacher=request.user)
-            # Создаём запись о назначенном тесте (TestResult)
-            test_result, created = TestResult.objects.get_or_create(
-                student=student.user,  
-                test=test,
-                defaults={
-                    'status': 'assigned',
-                    'deadline': deadline if deadline else None,
-                }
-            )
-            if not created:
-                messages.warning(request, f'Тест "{test.title}" уже был назначен этому ученику')
-            else:
-                messages.success(request, f'Тест "{test.title}" назначен ученику {student.user.username}')
-        except Test.DoesNotExist:
-            messages.error(request, 'Тест не найден')
-        return redirect('my_students')
+        deadline_raw = request.POST.get('deadline')
+
+        if not test_id:
+            error = 'Выберите тест'
+        else:
+            try:
+                test = Test.objects.get(id=test_id, teacher=request.user)
+                deadline = parse_datetime(deadline_raw) if deadline_raw else None
+
+                test_result, created = TestResult.objects.get_or_create(
+                    student=student.user,
+                    test=test,
+                    defaults={
+                        'status': 'assigned',
+                        'deadline': deadline,
+                    }
+                )
+
+                if not created:
+                    error = f'Тест "{test.title}" уже был назначен этому ученику'
+                else:
+                    success = f'Тест "{test.title}" назначен ученику {student.user.username}'
+
+            except Test.DoesNotExist:
+                error = 'Тест не найден'
+
     return render(request, 'teacher/assign_test.html', {
         'student': student,
         'tests': tests,
         'user': request.user,
+        'error': error,
+        'success': success,
+        'selected_test_id': request.POST.get('test_id', ''),
+        'deadline_value': request.POST.get('deadline', ''),
     })
-
 #список назначенных тестов у ученика
 @login_required
 def my_assigned_tests(request):
     assigned_tests = TestResult.objects.filter(
-        student=request.user,
-        status='assigned'
-    ).select_related('test')
-    return render(request, 'student/assigned_tests.html', {
+        student=request.user
+    ).select_related('test').order_by('-id')
+
+    return render(request, 'student/assigned_test.html', {
         'assigned_tests': assigned_tests,
         'user': request.user,
     })
 
+def _build_take_question_items(test, post_data=None, question_errors=None):
+    items = []
+
+    for question in test.questions.all().order_by('order', 'id'):
+        error = question_errors.get(question.id) if question_errors else None
+
+        item = {
+            'question': question,
+            'error': error,
+            'options': [],
+            'answer_text': '',
+        }
+
+        if post_data:
+            if question.question_type == 'text':
+                item['answer_text'] = post_data.get(f'question_{question.id}', '')
+
+            selected_values = post_data.getlist(f'question_{question.id}')
+
+            for option in question.options.all():
+                item['options'].append({
+                    'option': option,
+                    'checked': str(option.id) in selected_values,
+                })
+        else:
+            for option in question.options.all():
+                item['options'].append({
+                    'option': option,
+                    'checked': False,
+                })
+
+        items.append(item)
+
+    return items
+
 #страница прохождения теста учеником
 @login_required
 def take_test(request, test_id):
-    # Проверяем, что тест назначен ученику
     try:
         test_result = TestResult.objects.get(
             student=request.user,
             test_id=test_id,
-            status__in=['assigned', 'in_progress']
+            status='assigned'
         )
     except TestResult.DoesNotExist:
         messages.error(request, 'Этот тест не назначен вам или уже пройден')
         return redirect('my_assigned_tests')
-    #проверка дедлайна
-    if test_result.deadline and test_result.deadline < datetime.now():
+
+    if test_result.deadline and test_result.deadline < timezone.now():
         messages.error(request, f'Дедлайн теста истёк {test_result.deadline.strftime("%d.%m.%Y %H:%M")}')
         return redirect('my_assigned_tests')
-    
+
     test = test_result.test
-    questions = test.questions.all().order_by('order', 'id')
-    if test_result.status == 'assigned':
-        test_result.status = 'in_progress'
-        test_result.save()
+    question_items = _build_take_question_items(test)
+
     return render(request, 'student/take_test.html', {
         'test': test,
-        'questions': questions,
+        'question_items': question_items,
         'test_result_id': test_result.id,
         'user': request.user,
+        'general_error': None,
     })
-
 #прием ответов ученика и подсчет баллов
 @login_required
 def submit_test(request, test_id):
@@ -565,61 +672,129 @@ def submit_test(request, test_id):
         test_result = TestResult.objects.get(
             student=request.user,
             test_id=test_id,
-            status='in_progress'
+            status='assigned'
         )
     except TestResult.DoesNotExist:
         messages.error(request, 'Этот тест не доступен для отправки')
         return redirect('my_assigned_tests')
+
+    if test_result.deadline and test_result.deadline < timezone.now():
+        messages.error(request, 'Дедлайн теста истёк')
+        return redirect('my_assigned_tests')
+
     test = test_result.test
     questions = test.questions.all().order_by('order', 'id')
+
+    question_errors = {}
+
+    for question in questions:
+        field_name = f'question_{question.id}'
+
+        if question.question_type == 'single':
+            if not request.POST.get(field_name):
+                question_errors[question.id] = 'Выберите один вариант ответа'
+
+        elif question.question_type == 'multiple':
+            if not request.POST.getlist(field_name):
+                question_errors[question.id] = 'Выберите хотя бы один вариант ответа'
+
+        elif question.question_type == 'text':
+            if not request.POST.get(field_name, '').strip():
+                question_errors[question.id] = 'Введите развёрнутый ответ'
+
+    if question_errors:
+        question_items = _build_take_question_items(
+            test,
+            post_data=request.POST,
+            question_errors=question_errors
+        )
+
+        return render(request, 'student/take_test.html', {
+            'test': test,
+            'question_items': question_items,
+            'test_result_id': test_result.id,
+            'user': request.user,
+            'general_error': 'Ответьте на все вопросы',
+        })
+
     total_score = 0
     max_score = 0
+
+    Answer.objects.filter(
+        student=request.user,
+        test=test
+    ).delete()
+
     for question in questions:
         max_score += 1
+
         if question.question_type == 'single':
             user_answer = request.POST.get(f'question_{question.id}')
             correct_option = question.options.filter(is_correct=True).first()
-            is_correct = (user_answer and str(correct_option.id) == user_answer)
+
+            is_correct = False
+            if user_answer and correct_option:
+                is_correct = int(user_answer) == correct_option.id
+
             if is_correct:
                 total_score += 1
+
             Answer.objects.create(
                 student=request.user,
                 test=test,
                 question=question,
-                selected_option_id=user_answer if user_answer else None,
+                selected_option_id=user_answer,
                 is_correct=is_correct
             )
+
         elif question.question_type == 'multiple':
             user_answers = request.POST.getlist(f'question_{question.id}')
-            correct_options = set(question.options.filter(is_correct=True).values_list('id', flat=True))
-            user_answers_set = set(int(x) for x in user_answers)
-            is_correct = (user_answers_set == correct_options)
+
+            correct_options = set(
+                question.options.filter(is_correct=True).values_list('id', flat=True)
+            )
+
+            user_answers_set = set(int(item) for item in user_answers if item)
+
+            is_correct = user_answers_set == correct_options
+
             if is_correct:
                 total_score += 1
-            for answer_id in user_answers:
+
+            for option_id in user_answers_set:
                 Answer.objects.create(
                     student=request.user,
                     test=test,
                     question=question,
-                    selected_option_id=answer_id,
-                    is_correct=Answer.objects.filter(question=question, selected_option_id=answer_id, selected_option__is_correct=True).exists()
+                    selected_option_id=option_id,
+                    is_correct=option_id in correct_options
                 )
+
         elif question.question_type == 'text':
-            user_answer = request.POST.get(f'question_{question.id}', '')
-            #развернутый ответ сохраняется без начисления баллов
+            user_answer = request.POST.get(f'question_{question.id}', '').strip()
+
             Answer.objects.create(
                 student=request.user,
                 test=test,
                 question=question,
                 answer_text=user_answer,
-                is_correct=False  # пока не проверено
+                is_correct=False
             )
+
+    has_text_questions = questions.filter(question_type='text').exists()
+
     test_result.score = total_score
-    test_result.status = 'completed'
-    test_result.completed_at = datetime.now()
+
+    if has_text_questions:
+        test_result.status = 'pending_review'
+    else:
+        test_result.status = 'completed'
+
+    test_result.completed_at = timezone.now()
     test_result.save()
-    messages.success(request, f'Тест завершён! Ваш результат: {total_score} из {max_score}')
+
     return redirect('test_results', test_result_id=test_result.id)
+
 
 #страница с результатами теста
 @login_required
@@ -658,5 +833,66 @@ def test_results(request, test_result_id):
         'test': test,
         'test_result': test_result,
         'questions_details': questions_details,
+        'user': request.user,
+    })
+
+@login_required
+def teacher_result_detail(request, test_result_id):
+    test_result = get_object_or_404(
+        TestResult,
+        id=test_result_id,
+        test__teacher=request.user
+    )
+
+    test = test_result.test
+
+    student_profile = get_object_or_404(Student, user=test_result.student)
+
+    answers = Answer.objects.filter(
+        student=test_result.student,
+        test=test
+    ).select_related('question', 'selected_option')
+
+    questions_details = []
+
+    for question in test.questions.all().order_by('order', 'id'):
+        question_answers = answers.filter(question=question)
+
+        if question.question_type == 'multiple':
+            selected_options = []
+            is_correct = False
+
+            for answer in question_answers:
+                if answer.selected_option:
+                    selected_options.append(answer.selected_option.text)
+
+            if question_answers.exists():
+                is_correct = all(answer.is_correct for answer in question_answers)
+
+            user_answer = ', '.join(selected_options) if selected_options else '(не выбран)'
+
+        else:
+            answer = question_answers.first()
+
+            if question.question_type == 'text':
+                user_answer = answer.answer_text if answer and answer.answer_text else '(не введён)'
+                is_correct = answer.is_correct if answer else False
+            else:
+                user_answer = answer.selected_option.text if answer and answer.selected_option else '(не выбран)'
+                is_correct = answer.is_correct if answer else False
+
+        questions_details.append({
+            'text': question.text,
+            'type': question.question_type,
+            'user_answer': user_answer,
+            'is_correct': is_correct,
+        })
+
+    return render(request, 'teacher/result_detail.html', {
+        'test': test,
+        'test_result': test_result,
+        'student_profile': student_profile,
+        'questions_details': questions_details,
+        'answers_count': answers.count(),
         'user': request.user,
     })

@@ -1,35 +1,89 @@
-<h1>{{ test.title }}</h1>
-<p>{{ test.description }}</p>
+{% extends 'base_auth.html' %}
 
-<form method="post" action="{% url 'submit_test' test.id %}">
-    {% csrf_token %}
-    
-    {% for question in questions %}
-    <fieldset>
-        <legend>{{ forloop.counter }}. {{ question.text }}</legend>
-        
-        {% if question.question_type == 'single' %}
-            {% for option in question.options.all %}
-            <label>
-                <input type="radio" name="question_{{ question.id }}" value="{{ option.id }}">
-                {{ option.text }}
-            </label><br>
-            {% endfor %}
-        
-        {% elif question.question_type == 'multiple' %}
-            {% for option in question.options.all %}
-            <label>
-                <input type="checkbox" name="question_{{ question.id }}" value="{{ option.id }}">
-                {{ option.text }}
-            </label><br>
-            {% endfor %}
-        
-        {% elif question.question_type == 'text' %}
-            <textarea name="question_{{ question.id }}" rows="5" cols="50" placeholder="Введите ваш ответ..."></textarea>
+{% block title %}Прохождение теста{% endblock %}
+
+{% block content %}
+<section style="min-height: 100vh; background: #d8f0d7; padding: 48px 24px 80px;">
+    <div style="width: 100%; max-width: 760px; margin: 0 auto;">
+
+        <h1 style="margin: 0 0 12px; font-size: 32px; font-weight: 700; color: #204320;">
+            {{ test.title }}
+        </h1>
+
+        {% if test.description %}
+            <p style="margin: 0 0 28px; font-size: 17px; color: #355535;">
+                {{ test.description }}
+            </p>
         {% endif %}
-    </fieldset>
-    <br>
-    {% endfor %}
-    
-    <button type="submit">Отправить ответы</button>
-</form>
+
+        {% if general_error %}
+            <div style="background: #eaf8e8; border-radius: 14px; padding: 14px 18px; margin-bottom: 18px; color: #b03030; font-size: 15px; font-weight: 700; box-shadow: 0 6px 14px rgba(74, 120, 74, 0.06);">
+                {{ general_error }}
+            </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'submit_test' test.id %}">
+            {% csrf_token %}
+
+            {% for item in question_items %}
+                <div style="background: #eaf8e8; border-radius: 20px; padding: 24px; margin-bottom: 20px; box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08);">
+                    
+                    <h2 style="margin: 0 0 18px; font-size: 20px; color: #204320;">
+                        Вопрос {{ forloop.counter }}
+                    </h2>
+
+                    <p style="margin: 0 0 18px; font-size: 17px; color: #244224; font-weight: 600;">
+                        {{ item.question.text }}
+                    </p>
+
+                    {% if item.error %}
+                        <div style="margin: 0 0 14px; color: #b03030; font-size: 15px; font-weight: 700;">
+                            {{ item.error }}
+                        </div>
+                    {% endif %}
+
+                    {% if item.question.question_type == 'single' %}
+                        {% for opt in item.options %}
+                            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 16px; color: #355535;">
+                                <input type="radio" name="question_{{ item.question.id }}" value="{{ opt.option.id }}" {% if opt.checked %}checked{% endif %}>
+                                {{ opt.option.text }}
+                            </label>
+                        {% endfor %}
+
+                    {% elif item.question.question_type == 'multiple' %}
+                        {% for opt in item.options %}
+                            <label style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-size: 16px; color: #355535;">
+                                <input type="checkbox" name="question_{{ item.question.id }}" value="{{ opt.option.id }}" {% if opt.checked %}checked{% endif %}>
+                                {{ opt.option.text }}
+                            </label>
+                        {% endfor %}
+
+                    {% elif item.question.question_type == 'text' %}
+                        <textarea 
+                            name="question_{{ item.question.id }}"
+                            placeholder="Введите ответ"
+                            style="width: 100%; min-height: 130px; box-sizing: border-box; border: none; outline: none; border-radius: 14px; background: #edf8e8; padding: 14px; font-size: 16px; color: #244224; resize: vertical;"
+                        >{{ item.answer_text }}</textarea>
+                    {% endif %}
+
+                </div>
+            {% empty %}
+                <div style="background: #eaf8e8; border-radius: 20px; padding: 34px; text-align: center; color: #5f5f5f; font-size: 18px;">
+                    В этом тесте пока нет вопросов
+                </div>
+            {% endfor %}
+
+            {% if question_items %}
+                <button type="submit" style="width: 100%; height: 48px; border: none; border-radius: 14px; background: #49b347; color: white; font-size: 17px; font-weight: 700; cursor: pointer; margin-top: 8px;">
+                    Отправить тест
+                </button>
+            {% endif %}
+        </form>
+
+        <a href="{% url 'my_assigned_tests' %}" style="display: inline-flex; margin-top: 22px; color: #264726; text-decoration: none; font-size: 16px; font-weight: 700;">
+            Назад к тестам
+        </a>
+
+    </div>
+</section>
+{% endblock %}
