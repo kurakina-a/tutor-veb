@@ -3,11 +3,11 @@ from django.http import HttpResponse
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
+from django.contrib import messages
 from .forms import CustomUserCreationForm, TestForm, QuestionForm, OptionForm
-from .models import Test, Teacher, Student, Question, Option
+from .models import Test, Teacher, Student, Question, Option, User, TeacherStudent, Answer, TestResult
 import json
 from datetime import datetime
-
 
 def home(request):
     return render(request, 'home.html')

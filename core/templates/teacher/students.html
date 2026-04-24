@@ -1,13 +1,16 @@
 <h1>Мои ученики</h1>
+
+<a href="{% url 'add_student' %}">+ Добавить ученика</a>
+
 <ul>
     {% for item in students %}
-    <li>{{ item.student.user.first_name }} {{ item.student.user.last_name }} ({{ item.student.user.username }})</li>
+    <li>
+        {{ item.student.user.first_name }} {{ item.student.user.last_name }} ({{ item.student.user.username }})
+        <a href="{% url 'assign_test' item.student.id %}">📋 Назначить тест</a>
+    </li>
     {% empty %}
     <li>У вас пока нет учеников</li>
     {% endfor %}
 </ul>
+
 <a href="{% url 'teacher_dashboard' %}">Назад</a>
-<li>
-    {{ item.student.user.first_name }} {{ item.student.user.last_name }} ({{ item.student.user.username }})
-    <a href="{% url 'assign_test' item.student.id %}">📋 Назначить тест</a>
-</li>
