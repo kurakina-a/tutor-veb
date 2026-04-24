@@ -6,6 +6,7 @@ from django.contrib.auth.views import LoginView
 from .forms import CustomUserCreationForm, TestForm, QuestionForm, OptionForm
 from .models import Test, Teacher, Student, Question, Option
 import json
+from datetime import datetime
 
 
 def home(request):
@@ -526,3 +527,91 @@ def my_assigned_tests(request):
         'assigned_tests': assigned_tests,
         'user': request.user,
     })
+
+#страница прохождения теста учеником
+@login_required
+def take_test(request, test_id):
+    # Проверяем, что тест назначен ученику
+    try:
+        test_result = TestResult.objects.get(
+            student=request.user,
+            test_id=test_id,
+            status__in=['assigned', 'in_progress']
+        )
+    except TestResult.DoesNotExist:
+        messages.error(request, 'Этот тест не назначен вам или уже пройден')
+        return redirect('my_assigned_tests')
+    test = test_result.test
+    questions = test.questions.all().order_by('order', 'id')
+    if test_result.status == 'assigned':
+        test_result.status = 'in_progress'
+        test_result.save()
+    return render(request, 'student/take_test.html', {
+        'test': test,
+        'questions': questions,
+        'test_result_id': test_result.id,
+        'user': request.user,
+    })
+
+#прием ответов ученика и подсчет баллов
+@login_required
+def submit_test(request, test_id):
+    try:
+        test_result = TestResult.objects.get(
+            student=request.user,
+            test_id=test_id,
+            status='in_progress'
+        )
+    except TestResult.DoesNotExist:
+        messages.error(request, 'Этот тест не доступен для отправки')
+        return redirect('my_assigned_tests')
+    test = test_result.test
+    questions = test.questions.all().order_by('order', 'id')
+    total_score = 0
+    max_score = 0
+    for question in questions:
+        max_score += 1
+        if question.question_type == 'single':
+            user_answer = request.POST.get(f'question_{question.id}')
+            correct_option = question.options.filter(is_correct=True).first()
+            is_correct = (user_answer and str(correct_option.id) == user_answer)
+            if is_correct:
+                total_score += 1
+            Answer.objects.create(
+                student=request.user,
+                test=test,
+                question=question,
+                selected_option_id=user_answer if user_answer else None,
+                is_correct=is_correct
+            )
+        elif question.question_type == 'multiple':
+            user_answers = request.POST.getlist(f'question_{question.id}')
+            correct_options = set(question.options.filter(is_correct=True).values_list('id', flat=True))
+            user_answers_set = set(int(x) for x in user_answers)
+            is_correct = (user_answers_set == correct_options)
+            if is_correct:
+                total_score += 1
+            for answer_id in user_answers:
+                Answer.objects.create(
+                    student=request.user,
+                    test=test,
+                    question=question,
+                    selected_option_id=answer_id,
+                    is_correct=Answer.objects.filter(question=question, selected_option_id=answer_id, selected_option__is_correct=True).exists()
+                )
+        elif question.question_type == 'text':
+            user_answer = request.POST.get(f'question_{question.id}', '')
+            #развернутый ответ сохраняется без начисления баллов
+            Answer.objects.create(
+                student=request.user,
+                test=test,
+                question=question,
+                answer_text=user_answer,
+                is_correct=False  # пока не проверено
+            )
+    test_result.score = total_score
+    test_result.status = 'completed'
+    test_result.completed_at = datetime.now()
+    test_result.save()
+    messages.success(request, f'Тест завершён! Ваш результат: {total_score} из {max_score}')
+    return redirect('my_assigned_tests')

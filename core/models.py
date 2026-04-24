@@ -77,3 +77,13 @@ class TeacherStudent(models.Model):
 
     def __str__(self):
         return f"{self.teacher.user.username} → {self.student.user.username}"
+
+class Answer(models.Model):
+    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='answers')
+    test = models.ForeignKey(Test, on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    answer_text = models.TextField(blank=True, null=True)  # для text
+    selected_option = models.ForeignKey(Option, blank=True, null=True, on_delete=models.CASCADE)  # для single/multiple
+    is_correct = models.BooleanField(default=False)
+    def __str__(self):
+        return f"{self.student.username} - {self.question.text[:50]}"
