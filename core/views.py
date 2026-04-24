@@ -541,6 +541,11 @@ def take_test(request, test_id):
     except TestResult.DoesNotExist:
         messages.error(request, 'Этот тест не назначен вам или уже пройден')
         return redirect('my_assigned_tests')
+    #проверка дедлайна
+    if test_result.deadline and test_result.deadline < datetime.now():
+        messages.error(request, f'Дедлайн теста истёк {test_result.deadline.strftime("%d.%m.%Y %H:%M")}')
+        return redirect('my_assigned_tests')
+    
     test = test_result.test
     questions = test.questions.all().order_by('order', 'id')
     if test_result.status == 'assigned':
@@ -614,4 +619,44 @@ def submit_test(request, test_id):
     test_result.completed_at = datetime.now()
     test_result.save()
     messages.success(request, f'Тест завершён! Ваш результат: {total_score} из {max_score}')
-    return redirect('my_assigned_tests')
+    return redirect('test_results', test_result_id=test_result.id)
+
+#страница с результатами теста
+@login_required
+def test_results(request, test_result_id):
+    try:
+        test_result = TestResult.objects.get(
+            id=test_result_id,
+            student=request.user
+        )
+    except TestResult.DoesNotExist:
+        messages.error(request, 'Результат не найден')
+        return redirect('my_assigned_tests')
+    test = test_result.test
+    answers = Answer.objects.filter(
+        student=request.user,
+        test=test
+    ).select_related('question')
+    questions_details = []
+    for question in test.questions.all().order_by('order', 'id'):
+        answer = answers.filter(question=question).first()
+        is_correct = answer.is_correct if answer else False
+        
+        if question.question_type == 'text':
+            status = 'Проверен' if is_correct else 'Ожидает проверки'
+        else:
+            status = 'Правильно' if is_correct else 'Неправильно'
+        questions_details.append({
+            'text': question.text,
+            'type': question.question_type,
+            'user_answer': answer.answer_text if answer and answer.answer_text else None,
+            'selected_option': answer.selected_option.text if answer and answer.selected_option else None,
+            'is_correct': is_correct,
+            'status': status,
+        })
+    return render(request, 'student/results.html', {
+        'test': test,
+        'test_result': test_result,
+        'questions_details': questions_details,
+        'user': request.user,
+    })

@@ -1,0 +1,27 @@
+<h1>Результаты теста: {{ test.title }}</h1>
+
+<p><strong>Ваш результат:</strong> {{ test_result.score }} из {{ questions_details|length }}</p>
+
+{% if test_result.completed_at %}
+    <p><strong>Завершён:</strong> {{ test_result.completed_at|date:"d.m.Y H:i" }}</p>
+{% endif %}
+
+<hr>
+
+<h2>Детали ответов</h2>
+
+{% for q in questions_details %}
+<div style="margin-bottom: 30px; padding: 10px; border: 1px solid #ddd;">
+    <p><strong>{{ forloop.counter }}. {{ q.text }}</strong></p>
+    
+    {% if q.type == 'text' %}
+        <p><strong>Ваш ответ:</strong> {{ q.user_answer|default:"(не введён)" }}</p>
+        <p><strong>Статус:</strong> {{ q.status }}</p>
+    {% else %}
+        <p><strong>Ваш ответ:</strong> {{ q.selected_option|default:"(не выбран)" }}</p>
+        <p><strong>Результат:</strong> {{ q.status }}</p>
+    {% endif %}
+</div>
+{% endfor %}
+
+<a href="{% url 'my_assigned_tests' %}">← К списку тестов</a>

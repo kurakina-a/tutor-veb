@@ -39,4 +39,5 @@ urlpatterns = [
     path('student/tests/', views.my_assigned_tests, name='my_assigned_tests'),
     path('tests/take/<int:test_id>/', views.take_test, name='take_test'),
     path('tests/submit/<int:test_id>/', views.submit_test, name='submit_test'),
+    path('results/<int:test_result_id>/', views.test_results, name='test_results'),
 ]

@@ -1,7 +1,7 @@
 <h1>Мои тесты</h1>
 
 {% for assigned in assigned_tests %}
-<div>
+<div style="border: 1px solid #ccc; margin-bottom: 20px; padding: 15px;">
     <strong>{{ assigned.test.title }}</strong><br>
     {% if assigned.deadline %}
         Дедлайн: {{ assigned.deadline|date:"d.m.Y H:i" }}
@@ -10,7 +10,11 @@
     {% endif %}
     <br>
     <a href="{% url 'take_test' assigned.test.id %}">▶ Пройти тест</a>
+    &nbsp;|&nbsp;
+    <a href="{% url 'test_results' assigned.id %}">📊 Результаты</a>
 </div>
 {% empty %}
 <p>Вам пока не назначено ни одного теста</p>
 {% endfor %}
+
+<a href="{% url 'student_dashboard' %}">Назад</a>
