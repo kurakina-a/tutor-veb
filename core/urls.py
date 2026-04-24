@@ -31,4 +31,10 @@ urlpatterns = [
     path('question/option/add/<int:question_id>/', views.option_add, name='option_add'),
     path('option/edit/<int:option_id>/', views.option_edit, name='option_edit'),
     path('option/delete/<int:option_id>/', views.option_delete, name='option_delete'),
+
+    #назначение теста ученику
+    path('teacher/students/', views.my_students, name='my_students'),
+    path('teacher/students/add/', views.add_student, name='add_student'),
+    path('teacher/assign_test/<int:student_id>/', views.assign_test, name='assign_test'),
+    path('student/tests/', views.my_assigned_tests, name='my_assigned_tests'),
 ]

@@ -1,0 +1,7 @@
+<h1>Добавить ученика</h1>
+<form method="post">
+    {% csrf_token %}
+    <input type="text" name="username" placeholder="Логин ученика" required>
+    <button type="submit">Добавить</button>
+</form>
+<a href="{% url 'my_students' %}">Назад</a>

@@ -443,3 +443,86 @@ def option_delete(request, option_id):
         'option': option,
         'user': request.user,
     })
+
+@login_required
+def my_students(request):
+    teacher = Teacher.objects.get(user=request.user)
+    students = teacher.my_students.all()  
+    return render(request, 'teacher/students.html', {
+        'students': students,
+        'user': request.user,
+    })
+
+@login_required
+def add_student(request):
+    teacher = Teacher.objects.get(user=request.user)
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        try:
+            student_user = User.objects.get(username=username, is_student=True)
+            student = Student.objects.get(user=student_user)
+            teacher_student, created = TeacherStudent.objects.get_or_create(
+                teacher=teacher,
+                student=student
+            )
+            if created:
+                messages.success(request, f'Ученик {username} добавлен')
+            else:
+                messages.warning(request, f'Ученик {username} уже в вашем списке')
+        except User.DoesNotExist:
+            messages.error(request, f'Пользователь с логином {username} не найден')
+        except Student.DoesNotExist:
+            messages.error(request, f'Пользователь {username} не является учеником')
+        return redirect('my_students')
+    return render(request, 'teacher/add_student.html', {'user': request.user})
+
+#назначить тест ученику
+@login_required
+def assign_test(request, student_id):
+    teacher = Teacher.objects.get(user=request.user)
+    try:
+        teacher_student = TeacherStudent.objects.get(teacher=teacher, student_id=student_id)
+        student = teacher_student.student
+    except TeacherStudent.DoesNotExist:
+        messages.error(request, 'Этот ученик не привязан к вам')
+        return redirect('my_students')
+    # Список тестов учителя
+    tests = Test.objects.filter(teacher=request.user)
+    if request.method == 'POST':
+        test_id = request.POST.get('test_id')
+        deadline = request.POST.get('deadline')
+        try:
+            test = Test.objects.get(id=test_id, teacher=request.user)
+            # Создаём запись о назначенном тесте (TestResult)
+            test_result, created = TestResult.objects.get_or_create(
+                student=student.user,  
+                test=test,
+                defaults={
+                    'status': 'assigned',
+                    'deadline': deadline if deadline else None,
+                }
+            )
+            if not created:
+                messages.warning(request, f'Тест "{test.title}" уже был назначен этому ученику')
+            else:
+                messages.success(request, f'Тест "{test.title}" назначен ученику {student.user.username}')
+        except Test.DoesNotExist:
+            messages.error(request, 'Тест не найден')
+        return redirect('my_students')
+    return render(request, 'teacher/assign_test.html', {
+        'student': student,
+        'tests': tests,
+        'user': request.user,
+    })
+
+#список назначенных тестов у ученика
+@login_required
+def my_assigned_tests(request):
+    assigned_tests = TestResult.objects.filter(
+        student=request.user,
+        status='assigned'
+    ).select_related('test')
+    return render(request, 'student/assigned_tests.html', {
+        'assigned_tests': assigned_tests,
+        'user': request.user,
+    })

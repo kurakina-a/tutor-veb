@@ -1,0 +1,20 @@
+<h1>Назначить тест: {{ student.user.first_name }} {{ student.user.last_name }}</h1>
+
+<form method="post">
+    {% csrf_token %}
+    
+    <label>Выберите тест:</label>
+    <select name="test_id" required>
+        <option value="">-- Выберите тест --</option>
+        {% for test in tests %}
+        <option value="{{ test.id }}">{{ test.title }}</option>
+        {% endfor %}
+    </select>
+    
+    <label>Дедлайн (необязательно):</label>
+    <input type="datetime-local" name="deadline">
+    
+    <button type="submit">Назначить</button>
+</form>
+
+<a href="{% url 'my_students' %}">Назад к списку учеников</a>

@@ -66,3 +66,14 @@ class TestResult(models.Model): #результат прохождения те�
     
     def __str__(self):
         return f"{self.student.username} - {self.test.title} ({self.status})"
+
+class TeacherStudent(models.Model):
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, related_name='my_students')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='my_teacher')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['teacher', 'student']  # один ученик не может быть добавлен дважды
+
+    def __str__(self):
+        return f"{self.teacher.user.username} → {self.student.user.username}"
