@@ -1,0 +1,15 @@
+<h1>Комментарий к ответу</h1>
+
+<p><strong>Ученик:</strong> {{ answer.student.first_name }} {{ answer.student.last_name }}</p>
+<p><strong>Тест:</strong> {{ answer.test.title }}</p>
+<p><strong>Вопрос:</strong> {{ answer.question.text }}</p>
+<p><strong>Ответ ученика:</strong> {{ answer.answer_text }}</p>
+
+<form method="post">
+    {% csrf_token %}
+    <textarea name="text" rows="5" cols="50" placeholder="Напишите комментарий..." required></textarea>
+    <br>
+    <button type="submit">Отправить комментарий</button>
+</form>
+
+<a href="{% url 'pending_answers' %}">Назад</a>

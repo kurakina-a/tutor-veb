@@ -896,3 +896,51 @@ def teacher_result_detail(request, test_result_id):
         'answers_count': answers.count(),
         'user': request.user,
     })
+
+#список ответов на развернутые вопросы, ожидающих комментария
+@login_required
+def pending_answers(request):
+    pending = Answer.objects.filter(
+        question__question_type='text',
+        is_correct=False,
+        question__test__teacher=request.user
+    ).select_related('student', 'question__test').order_by('-id')
+    return render(request, 'teacher/pending_answers.html', {
+        'pending': pending,
+        'user': request.user,
+    })
+
+#добавление комментария к ответу ученика
+@login_required
+def add_comment(request, answer_id):
+    answer = get_object_or_404(Answer, id=answer_id, question__test__teacher=request.user)
+    if request.method == 'POST':
+        text = request.POST.get('text', '').strip()
+        if text:
+            Comment.objects.create(
+                answer=answer,
+                teacher=request.user,
+                text=text
+            )
+            answer.is_correct = True
+            answer.save()
+            messages.success(request, 'Комментарий добавлен')
+        else:
+            messages.error(request, 'Текст комментария не может быть пустым')
+        return redirect('pending_answers')
+    return render(request, 'teacher/add_comment.html', {
+        'answer': answer,
+        'user': request.user,
+    })
+
+
+#комментарии репетиторов к ответам ученика
+@login_required
+def my_comments(request):
+    comments = Comment.objects.filter(
+        answer__student=request.user
+    ).select_related('answer__question', 'answer__test', 'teacher').order_by('-created_at')
+    return render(request, 'student/my_comments.html', {
+        'comments': comments,
+        'user': request.user,
+    })

@@ -1,0 +1,14 @@
+<h1>Мои комментарии от репетитора</h1>
+
+{% for comment in comments %}
+<div style="border: 1px solid #ddd; margin-bottom: 20px; padding: 15px;">
+    <p><strong>Репетитор:</strong> {{ comment.teacher.first_name }} {{ comment.teacher.last_name }}</p>
+    <p><strong>Тест:</strong> {{ comment.answer.test.title }}</p>
+    <p><strong>Вопрос:</strong> {{ comment.answer.question.text }}</p>
+    <p><strong>Ваш ответ:</strong> {{ comment.answer.answer_text|default:comment.answer.selected_option.text }}</p>
+    <p><strong>Комментарий:</strong> {{ comment.text }}</p>
+    <p><small>{{ comment.created_at|date:"d.m.Y H:i" }}</small></p>
+</div>
+{% empty %}
+<p>У вас пока нет комментариев от репетитора</p>
+{% endfor %}

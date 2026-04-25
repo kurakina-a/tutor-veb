@@ -1,0 +1,13 @@
+<h1>Ответы на проверку</h1>
+
+{% for answer in pending %}
+<div style="border: 1px solid #ddd; margin-bottom: 20px; padding: 15px;">
+    <p><strong>Ученик:</strong> {{ answer.student.first_name }} {{ answer.student.last_name }}</p>
+    <p><strong>Тест:</strong> {{ answer.test.title }}</p>
+    <p><strong>Вопрос:</strong> {{ answer.question.text }}</p>
+    <p><strong>Ответ:</strong> {{ answer.answer_text }}</p>
+    <a href="{% url 'add_comment' answer.id %}">✏️ Добавить комментарий</a>
+</div>
+{% empty %}
+<p>Нет ответов, ожидающих проверки</p>
+{% endfor %}

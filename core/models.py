@@ -87,3 +87,11 @@ class Answer(models.Model):
     is_correct = models.BooleanField(default=False)
     def __str__(self):
         return f"{self.student.username} - {self.question.text[:50]}"
+
+class Comment(models.Model):
+    answer = models.ForeignKey(Answer, on_delete=models.CASCADE, related_name='comments')
+    teacher = models.ForeignKey(User, on_delete=models.CASCADE, limit_choices_to={'is_teacher': True})
+    text = models.TextField(verbose_name='Текст комментария')
+    created_at = models.DateTimeField(auto_now_add=True)
+    def __str__(self):
+        return f"Комментарий к {self.answer.question.text[:30]} от {self.teacher.username}"

@@ -14,7 +14,8 @@ urlpatterns = [
     
     path('student/tasks/', views.student_tasks, name='student_tasks'),
     path('teacher/tests/', views.tests_list, name='tests_list'),
-    path('teacher/students/<int:student_id>/results/', views.teacher_checking, name='teacher_checking'),
+    path('teacher/checking/<int:student_id>/', views.teacher_checking, name='teacher_checking'),
+
     #тесты
     path('tests/', views.test_list, name='test_list'),
     path('tests/create/', views.test_create, name='test_create'),
@@ -39,5 +40,11 @@ urlpatterns = [
     path('tests/take/<int:test_id>/', views.take_test, name='take_test'),
     path('tests/submit/<int:test_id>/', views.submit_test, name='submit_test'),
     path('results/<int:test_result_id>/', views.test_results, name='test_results'),
-    path('teacher/result/<int:test_result_id>/', views.teacher_result_detail, name='teacher_result_detail')
+    path('teacher/review_text_answers/', views.review_text_answers, name='review_text_answers'),
+    path('teacher/grade_answer/<int:answer_id>/', views.grade_answer, name='grade_answer'),
+
+    #комментарии
+    path('teacher/pending_answers/', views.pending_answers, name='pending_answers'),
+    path('teacher/add_comment/<int:answer_id>/', views.add_comment, name='add_comment'),
+    path('student/my_comments/', views.my_comments, name='my_comments'),
 ]
