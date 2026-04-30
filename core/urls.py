@@ -40,8 +40,8 @@ urlpatterns = [
     path('tests/take/<int:test_id>/', views.take_test, name='take_test'),
     path('tests/submit/<int:test_id>/', views.submit_test, name='submit_test'),
     path('results/<int:test_result_id>/', views.test_results, name='test_results'),
-    path('teacher/review_text_answers/', views.review_text_answers, name='review_text_answers'),
-    path('teacher/grade_answer/<int:answer_id>/', views.grade_answer, name='grade_answer'),
+    path('teacher/results/<int:test_result_id>/', views.teacher_result_detail, name='teacher_result_detail'),
+    path('teacher/review_text_answers/<int:test_result_id>/', views.review_text_answers, name='review_text_answers'),    path('teacher/grade_answer/<int:answer_id>/', views.grade_answer, name='grade_answer'),
 
     #комментарии
     path('teacher/pending_answers/', views.pending_answers, name='pending_answers'),

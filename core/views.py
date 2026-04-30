@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
 from django.contrib import messages
 from .forms import CustomUserCreationForm, TestForm, QuestionForm, OptionForm
-from .models import Test, Teacher, Student, Question, Option, User, TeacherStudent, Answer, TestResult
+from .models import Test, Teacher, Student, Question, Option, User, TeacherStudent, Answer, TestResult, Comment
 import json
 from datetime import datetime
 from django.utils.dateparse import parse_datetime
@@ -117,7 +117,8 @@ def teacher_checking(request, student_id=None):
     rows = []
 
     for result in results:
-        if result.deadline and result.deadline < timezone.now() and result.status == 'assigned':            display_status = 'Дедлайн просрочен'
+        if result.deadline and result.deadline < timezone.now() and result.status == 'assigned':
+            display_status = 'Дедлайн просрочен'
         elif result.status == 'assigned':
             display_status = 'Назначен'
         elif result.status == 'pending_review':
@@ -127,9 +128,12 @@ def teacher_checking(request, student_id=None):
         else:
             display_status = result.status
 
+        max_score = sum(question.points for question in result.test.questions.all())
+
         rows.append({
             'result': result,
             'display_status': display_status,
+            'max_score': max_score,
         })
 
     return render(request, 'teacher/student_results.html', {
@@ -137,6 +141,8 @@ def teacher_checking(request, student_id=None):
         'rows': rows,
         'user': request.user,
     })
+
+
 class CustomLoginView(LoginView):
     template_name = 'registration/login.html'
 
@@ -184,6 +190,7 @@ def _build_questions_data(test):
         item = {
             'text': question.text,
             'question_type': question.question_type,
+            'points': question.points,
             'options': []
         }
 
@@ -272,7 +279,8 @@ def test_create(request):
                     test=test,
                     text=text,
                     question_type=question_type,
-                    order=index
+                    order=index,
+                    points=int(q.get('points') or 1)
                 )
 
                 if question_type != 'text':
@@ -332,7 +340,8 @@ def test_edit(request, test_id):
                     test=test,
                     text=text,
                     question_type=question_type,
-                    order=index
+                    order=index,
+                    points=int(q.get('points') or 1)
                 )
 
                 if question.question_type != 'text':
@@ -726,7 +735,7 @@ def submit_test(request, test_id):
     ).delete()
 
     for question in questions:
-        max_score += 1
+        max_score += question.points
 
         if question.question_type == 'single':
             user_answer = request.POST.get(f'question_{question.id}')
@@ -737,7 +746,7 @@ def submit_test(request, test_id):
                 is_correct = int(user_answer) == correct_option.id
 
             if is_correct:
-                total_score += 1
+                total_score += question.points
 
             Answer.objects.create(
                 student=request.user,
@@ -759,7 +768,7 @@ def submit_test(request, test_id):
             is_correct = user_answers_set == correct_options
 
             if is_correct:
-                total_score += 1
+                total_score += question.points
 
             for option_id in user_answers_set:
                 Answer.objects.create(
@@ -807,34 +816,100 @@ def test_results(request, test_result_id):
     except TestResult.DoesNotExist:
         messages.error(request, 'Результат не найден')
         return redirect('my_assigned_tests')
+
     test = test_result.test
+
     answers = Answer.objects.filter(
         student=request.user,
         test=test
-    ).select_related('question')
+    ).select_related('question', 'selected_option')
+
     questions_details = []
+
     for question in test.questions.all().order_by('order', 'id'):
-        answer = answers.filter(question=question).first()
-        is_correct = answer.is_correct if answer else False
-        
-        if question.question_type == 'text':
-            status = 'Проверен' if is_correct else 'Ожидает проверки'
-        else:
+        question_answers = answers.filter(question=question)
+
+        selected_option_ids = set(
+            answer.selected_option_id
+            for answer in question_answers
+            if answer.selected_option_id
+        )
+
+        answer_for_comment = question_answers.first()
+
+        comments = []
+        if answer_for_comment:
+            comments = Comment.objects.filter(
+                answer=answer_for_comment
+            ).select_related('teacher').order_by('created_at')
+
+        options = []
+
+        if question.question_type != 'text':
+            for option in question.options.all():
+                options.append({
+                    'id': option.id,
+                    'text': option.text,
+                    'is_correct': option.is_correct,
+                    'is_selected': option.id in selected_option_ids,
+                })
+
+        if question.question_type == 'multiple':
+            correct_option_ids = set(
+                question.options.filter(is_correct=True).values_list('id', flat=True)
+            )
+
+            is_correct = selected_option_ids == correct_option_ids
+
+            if selected_option_ids:
+                user_answer = ', '.join(
+                    option.text
+                    for option in question.options.filter(id__in=selected_option_ids)
+                )
+            else:
+                user_answer = '(не выбран)'
+
             status = 'Правильно' if is_correct else 'Неправильно'
+            earned_points = question.points if is_correct else 0
+
+        else:
+            answer = question_answers.first()
+
+            if question.question_type == 'text':
+                user_answer = answer.answer_text if answer and answer.answer_text else '(не введён)'
+                is_correct = answer.is_correct if answer else False
+                status = 'Проверен' if is_correct else 'Ожидает проверки'
+                earned_points = None
+            else:
+                user_answer = answer.selected_option.text if answer and answer.selected_option else '(не выбран)'
+                is_correct = answer.is_correct if answer else False
+                status = 'Правильно' if is_correct else 'Неправильно'
+                earned_points = question.points if is_correct else 0
+
         questions_details.append({
             'text': question.text,
             'type': question.question_type,
-            'user_answer': answer.answer_text if answer and answer.answer_text else None,
-            'selected_option': answer.selected_option.text if answer and answer.selected_option else None,
+            'user_answer': user_answer,
+            'selected_option': user_answer,
+            'options': options,
             'is_correct': is_correct,
             'status': status,
+            'points': question.points,
+            'earned_points': earned_points,
+            'comments': comments,
         })
+
+    max_score = sum(question.points for question in test.questions.all())
+
     return render(request, 'student/results.html', {
         'test': test,
         'test_result': test_result,
         'questions_details': questions_details,
+        'max_score': max_score,
         'user': request.user,
     })
+    
+
 
 @login_required
 def teacher_result_detail(request, test_result_id):
@@ -846,7 +921,28 @@ def teacher_result_detail(request, test_result_id):
 
     test = test_result.test
 
-    student_profile = get_object_or_404(Student, user=test_result.student)
+    if request.method == 'POST':
+        answer_id = request.POST.get('answer_id')
+        comment_text = request.POST.get('comment_text', '').strip()
+
+        if answer_id and comment_text:
+            answer = get_object_or_404(
+                Answer,
+                id=answer_id,
+                question__test__teacher=request.user
+            )
+
+            Comment.objects.create(
+                answer=answer,
+                teacher=request.user,
+                text=comment_text
+            )
+
+            messages.success(request, 'Комментарий сохранён')
+        else:
+            messages.error(request, 'Комментарий не может быть пустым')
+
+        return redirect('teacher_result_detail', test_result_id=test_result.id)
 
     answers = Answer.objects.filter(
         student=test_result.student,
@@ -858,18 +954,45 @@ def teacher_result_detail(request, test_result_id):
     for question in test.questions.all().order_by('order', 'id'):
         question_answers = answers.filter(question=question)
 
+        selected_option_ids = set(
+            answer.selected_option_id
+            for answer in question_answers
+            if answer.selected_option_id
+        )
+
+        answer_for_comment = question_answers.first()
+
+        comments = []
+        if answer_for_comment:
+            comments = Comment.objects.filter(
+                answer=answer_for_comment
+            ).select_related('teacher').order_by('created_at')
+
+        options = []
+
+        if question.question_type != 'text':
+            for option in question.options.all():
+                options.append({
+                    'id': option.id,
+                    'text': option.text,
+                    'is_correct': option.is_correct,
+                    'is_selected': option.id in selected_option_ids,
+                })
+
         if question.question_type == 'multiple':
-            selected_options = []
-            is_correct = False
+            correct_option_ids = set(
+                question.options.filter(is_correct=True).values_list('id', flat=True)
+            )
 
-            for answer in question_answers:
-                if answer.selected_option:
-                    selected_options.append(answer.selected_option.text)
+            is_correct = selected_option_ids == correct_option_ids
 
-            if question_answers.exists():
-                is_correct = all(answer.is_correct for answer in question_answers)
-
-            user_answer = ', '.join(selected_options) if selected_options else '(не выбран)'
+            if selected_option_ids:
+                user_answer = ', '.join(
+                    option.text
+                    for option in question.options.filter(id__in=selected_option_ids)
+                )
+            else:
+                user_answer = '(не выбран)'
 
         else:
             answer = question_answers.first()
@@ -885,17 +1008,25 @@ def teacher_result_detail(request, test_result_id):
             'text': question.text,
             'type': question.question_type,
             'user_answer': user_answer,
+            'selected_option': user_answer,
+            'options': options,
             'is_correct': is_correct,
+            'points': question.points,
+            'answer_id': answer_for_comment.id if answer_for_comment else None,
+            'comments': comments,
         })
+
+    max_score = sum(question.points for question in test.questions.all())
 
     return render(request, 'teacher/result_detail.html', {
         'test': test,
         'test_result': test_result,
-        'student_profile': student_profile,
         'questions_details': questions_details,
         'answers_count': answers.count(),
+        'max_score': max_score,
         'user': request.user,
     })
+
 
 #список ответов на развернутые вопросы, ожидающих комментария
 @login_required
@@ -942,5 +1073,115 @@ def my_comments(request):
     ).select_related('answer__question', 'answer__test', 'teacher').order_by('-created_at')
     return render(request, 'student/my_comments.html', {
         'comments': comments,
+        'user': request.user,
+    })
+    
+@login_required
+def review_text_answers(request, test_result_id):
+    test_result = get_object_or_404(
+        TestResult,
+        id=test_result_id,
+        test__teacher=request.user
+    )
+
+    answers = Answer.objects.filter(
+        student=test_result.student,
+        test=test_result.test,
+        question__question_type='text',
+        is_correct=False
+    ).select_related('student', 'test', 'question').order_by('question__order', 'id')
+
+    return render(request, 'teacher/review_text.html', {
+        'test_result': test_result,
+        'answers': answers,
+        'user': request.user,
+    })
+
+
+#выставление оценки за развернутый ответ
+@login_required
+def grade_answer(request, answer_id):
+    answer = get_object_or_404(
+        Answer,
+        id=answer_id,
+        question__test__teacher=request.user
+    )
+
+    test_result = get_object_or_404(
+        TestResult,
+        student=answer.student,
+        test=answer.test
+    )
+
+    max_points = answer.question.points
+
+    if request.method == 'POST':
+        score_raw = request.POST.get('score', '').strip()
+        comment_text = request.POST.get('text', '').strip()
+
+        error = None
+        score_value = None
+
+        if not score_raw:
+            error = 'Введите количество баллов'
+        else:
+            try:
+                score_value = int(score_raw)
+
+                if score_value < 0:
+                    error = 'Баллы не могут быть меньше 0'
+                elif score_value > max_points:
+                    error = f'Максимум за этот вопрос — {max_points} балл.'
+
+            except ValueError:
+                error = 'Введите корректное число'
+
+        if error:
+            return render(request, 'teacher/grade_answer.html', {
+                'answer': answer,
+                'test_result': test_result,
+                'max_points': max_points,
+                'error': error,
+                'score_value': score_raw,
+                'comment_value': comment_text,
+                'user': request.user,
+            })
+
+        answer.is_correct = True
+        answer.save()
+
+        current_score = test_result.score or 0
+        test_result.score = current_score + score_value
+
+        unfinished_text_answers = Answer.objects.filter(
+            student=answer.student,
+            test=answer.test,
+            question__question_type='text',
+            is_correct=False
+        ).exclude(id=answer.id)
+
+        if not unfinished_text_answers.exists():
+            test_result.status = 'completed'
+
+        test_result.save()
+
+        if comment_text:
+            Comment.objects.create(
+                answer=answer,
+                teacher=request.user,
+                text=comment_text
+            )
+
+        messages.success(request, 'Ответ проверен')
+
+        return redirect('review_text_answers', test_result_id=test_result.id)
+
+    return render(request, 'teacher/grade_answer.html', {
+        'answer': answer,
+        'test_result': test_result,
+        'max_points': max_points,
+        'error': None,
+        'score_value': '',
+        'comment_value': '',
         'user': request.user,
     })

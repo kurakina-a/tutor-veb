@@ -18,7 +18,7 @@
             <p style="margin: 0 0 10px; font-size: 18px; color: #244224;">
                 <strong>Ваш результат:</strong>
                 {% if test_result.score != None %}
-                    {{ test_result.score }} из {{ questions_details|length }}
+                    {{ test_result.score }} из {{ max_score }}
                 {% else %}
                     Ожидает проверки
                 {% endif %}
@@ -38,9 +38,22 @@
         {% for q in questions_details %}
             <div style="background: #eaf8e8; border-radius: 20px; padding: 24px 28px; box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08); margin-bottom: 18px;">
 
-                <h3 style="margin: 0 0 14px; font-size: 20px; color: #204320;">
+                <h3 style="margin: 0 0 10px; font-size: 20px; color: #204320;">
                     Вопрос {{ forloop.counter }}
                 </h3>
+
+                <p style="margin: 0 0 14px; color: #5f735f; font-size: 16px; font-weight: 700;">
+                    Баллы за вопрос:
+                    {% if q.type == 'text' %}
+                        {% if q.status == 'Ожидает проверки' %}
+                            ожидает проверки из {{ q.points }}
+                        {% else %}
+                            проверено, максимум {{ q.points }}
+                        {% endif %}
+                    {% else %}
+                        {{ q.earned_points }} из {{ q.points }}
+                    {% endif %}
+                </p>
 
                 <p style="margin: 0 0 18px; font-size: 17px; color: #244224; font-weight: 700;">
                     {{ q.text }}
@@ -51,6 +64,7 @@
                         <p style="margin: 0 0 8px; color: #5f735f; font-weight: 700;">
                             Ваш ответ:
                         </p>
+
                         <p style="margin: 0; color: #244224; line-height: 1.5;">
                             {{ q.user_answer|default:"(не введён)" }}
                         </p>
@@ -60,6 +74,43 @@
                         {{ q.status }}
                     </p>
                 {% else %}
+
+                    {% if q.options %}
+                        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+                            {% for option in q.options %}
+                                {% if option.is_correct and option.is_selected %}
+                                    <div style="border-radius: 14px; padding: 14px 16px; background: #dff5dd; border: 2px solid #62b85f;">
+                                {% elif option.is_correct %}
+                                    <div style="border-radius: 14px; padding: 14px 16px; background: #edf8e8; border: 2px solid #62b85f;">
+                                {% elif option.is_selected %}
+                                    <div style="border-radius: 14px; padding: 14px 16px; background: #fff2f2; border: 2px solid #e3a3a3;">
+                                {% else %}
+                                    <div style="border-radius: 14px; padding: 14px 16px; background: white; border: 2px solid #d3e7cf;">
+                                {% endif %}
+
+                                    <div style="color: #294b29; font-size: 16px;">
+                                        {{ option.text }}
+                                    </div>
+
+                                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+                                        {% if option.is_selected %}
+                                            <span style="background: white; color: #315931; border-radius: 999px; padding: 6px 10px; font-size: 13px; font-weight: 700;">
+                                                Ваш ответ
+                                            </span>
+                                        {% endif %}
+
+                                        {% if option.is_correct %}
+                                            <span style="background: #69b95f; color: white; border-radius: 999px; padding: 6px 10px; font-size: 13px; font-weight: 700;">
+                                                Правильный ответ
+                                            </span>
+                                        {% endif %}
+                                    </div>
+
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
                     <p style="margin: 0 0 10px; font-size: 16px; color: #244224;">
                         <strong>Ваш ответ:</strong>
                         {{ q.selected_option|default:"(не выбран)" }}
@@ -75,6 +126,32 @@
                         </p>
                     {% endif %}
                 {% endif %}
+
+                <div style="margin-top: 22px;">
+                    <p style="margin: 0 0 10px; color: #5f735f; font-weight: 700;">
+                        Комментарии преподавателя:
+                    </p>
+
+                    {% if q.comments %}
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            {% for comment in q.comments %}
+                                <div style="background: #f4fbf2; border: 2px solid #d7ead2; border-radius: 14px; padding: 12px 14px;">
+                                    <p style="margin: 0 0 6px; color: #234223; font-weight: 700;">
+                                        {{ comment.teacher.first_name }} {{ comment.teacher.last_name }}
+                                    </p>
+
+                                    <p style="margin: 0; color: #496649; line-height: 1.5;">
+                                        {{ comment.text }}
+                                    </p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p style="margin: 0; color: #6d806d;">
+                            Комментариев пока нет
+                        </p>
+                    {% endif %}
+                </div>
 
             </div>
         {% endfor %}

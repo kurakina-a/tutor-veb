@@ -33,6 +33,7 @@ class Question(models.Model):
     text = models.TextField(verbose_name='Текст вопроса')
     question_type = models.CharField(max_length=10, choices=QUESTION_TYPES, default='single', verbose_name='Тип вопроса')
     order = models.PositiveIntegerField(default=0, verbose_name='Порядок')
+    points = models.PositiveIntegerField(default=1, verbose_name='Баллы')
     
     def __str__(self):
         return f"{self.text[:50]}... ({self.get_question_type_display()})"

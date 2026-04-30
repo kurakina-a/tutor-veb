@@ -249,8 +249,10 @@
 
     function updateQuestionNumbers() {
         const cards = questionsContainer.querySelectorAll('.question-card');
+
         cards.forEach((card, index) => {
             const title = card.querySelector('.question-title');
+
             if (title) {
                 title.textContent = `Вопрос ${index + 1}`;
             }
@@ -292,17 +294,22 @@
 
         if (typeSelect.value === 'single') {
             const groupName = 'single_' + Math.random().toString(36).slice(2);
+
             optionRows.forEach((row) => {
                 const check = row.querySelector('.option-check');
                 const wasChecked = check.checked;
+
                 check.type = 'radio';
                 check.name = groupName;
                 check.checked = wasChecked;
             });
+
         } else {
+
             optionRows.forEach((row) => {
                 const check = row.querySelector('.option-check');
                 const wasChecked = check.checked;
+
                 check.type = 'checkbox';
                 check.removeAttribute('name');
                 check.checked = wasChecked;
@@ -316,6 +323,7 @@
 
         const questionType = data && data.question_type ? data.question_type : 'single';
         const questionText = data && data.text ? data.text : '';
+        const questionPoints = data && data.points ? data.points : 1;
 
         card.innerHTML = `
             <div class="question-title">Вопрос</div>
@@ -333,9 +341,22 @@
 
             <textarea class="builder-textarea question-text" placeholder="Текст вопроса"></textarea>
 
+            <div style="margin-top: 12px;">
+                <input
+                    type="number"
+                    min="1"
+                    class="builder-input question-points"
+                    placeholder="Баллы за вопрос"
+                    value="${questionPoints}"
+                >
+            </div>
+
             <div class="options-block">
                 <div class="options-wrap"></div>
-                <button type="button" class="small-btn add-option-btn">Добавить вариант</button>
+
+                <button type="button" class="small-btn add-option-btn">
+                    Добавить вариант
+                </button>
             </div>
         `;
 
@@ -361,27 +382,34 @@
         });
 
         if (data && Array.isArray(data.options) && data.options.length) {
+
             data.options.forEach((opt) => {
                 optionsWrap.appendChild(
                     createOptionRow(questionType, opt.text || '', !!opt.is_correct)
                 );
             });
+
         } else if (questionType !== 'text') {
+
             optionsWrap.appendChild(createOptionRow(questionType));
             optionsWrap.appendChild(createOptionRow(questionType));
         }
 
         applyTypeToOptions(card);
+
         return card;
     }
 
     function clearQuestionErrors() {
         const cards = questionsContainer.querySelectorAll('.question-card');
+
         cards.forEach((card) => {
             const box = card.querySelector('.question-error-box');
+
             box.style.display = 'none';
             box.textContent = '';
         });
+
         globalQuestionErrorBox.style.display = 'none';
         globalQuestionErrorBox.textContent = '';
     }
@@ -395,13 +423,17 @@
             return true;
         }
 
-        cards.forEach((card, index) => {
+        cards.forEach((card) => {
             const box = card.querySelector('.question-error-box');
             const questionType = card.querySelector('.question-type').value;
             const questionText = card.querySelector('.question-text').value.trim();
+
             const optionRows = card.querySelectorAll('.option-row');
+
             const filledOptions = [];
+
             let correctCount = 0;
+
             const errors = [];
 
             optionRows.forEach((row) => {
@@ -409,8 +441,14 @@
                 const isCorrect = row.querySelector('.option-check').checked;
 
                 if (optionText) {
-                    filledOptions.push({ text: optionText, is_correct: isCorrect });
-                    if (isCorrect) correctCount += 1;
+                    filledOptions.push({
+                        text: optionText,
+                        is_correct: isCorrect
+                    });
+
+                    if (isCorrect) {
+                        correctCount += 1;
+                    }
                 }
             });
 
@@ -419,6 +457,7 @@
             }
 
             if (questionType === 'single' || questionType === 'multiple') {
+
                 if (filledOptions.length < 2) {
                     errors.push('Добавьте минимум 2 варианта ответа');
                 }
@@ -434,6 +473,7 @@
 
             if (errors.length > 0) {
                 hasError = true;
+
                 box.style.display = 'block';
                 box.textContent = errors.join('\n');
             }
@@ -449,14 +489,20 @@
             const questionType = card.querySelector('.question-type').value;
             const questionText = card.querySelector('.question-text').value.trim();
 
+            const questionPoints = parseInt(
+                card.querySelector('.question-points').value || 1
+            );
+
             const item = {
                 text: questionText,
                 question_type: questionType,
+                points: questionPoints,
                 options: []
             };
 
             if (questionType !== 'text') {
                 const optionRows = card.querySelectorAll('.option-row');
+
                 optionRows.forEach((row) => {
                     const optionText = row.querySelector('.option-text').value.trim();
                     const isCorrect = row.querySelector('.option-check').checked;
@@ -487,6 +533,7 @@
         clearQuestionErrors();
 
         const questions = buildQuestionsPayload(cards);
+
         questionsDataInput.value = JSON.stringify(questions);
 
         const hasQuestionErrors = validateQuestionsFromCards(cards);
@@ -498,10 +545,13 @@
     });
 
     if (Array.isArray(initialQuestionsData) && initialQuestionsData.length) {
+
         initialQuestionsData.forEach((item) => {
             questionsContainer.appendChild(createQuestionCard(item));
         });
+
     } else {
+
         questionsContainer.appendChild(createQuestionCard());
     }
 

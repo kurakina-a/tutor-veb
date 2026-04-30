@@ -243,6 +243,10 @@
     .options-block {
         margin-top: 14px;
     }
+
+    .points-wrap {
+        margin-top: 12px;
+    }
 </style>
 
 {{ questions_data|json_script:"initial-questions-data" }}
@@ -334,6 +338,7 @@
 
         const questionType = data && data.question_type ? data.question_type : 'single';
         const questionText = data && data.text ? data.text : '';
+        const questionPoints = data && data.points ? data.points : 1;
 
         card.innerHTML = `
             <div class="question-title">Вопрос</div>
@@ -350,6 +355,16 @@
             </div>
 
             <textarea class="builder-textarea question-text" placeholder="Текст вопроса"></textarea>
+
+            <div class="points-wrap">
+                <input
+                    type="number"
+                    min="1"
+                    class="builder-input question-points"
+                    placeholder="Баллы за вопрос"
+                    value="${questionPoints}"
+                >
+            </div>
 
             <div class="options-block">
                 <div class="options-wrap"></div>
@@ -417,6 +432,7 @@
             const box = card.querySelector('.question-error-box');
             const questionType = card.querySelector('.question-type').value;
             const questionText = card.querySelector('.question-text').value.trim();
+            const questionPoints = parseInt(card.querySelector('.question-points').value || 1);
             const optionRows = card.querySelectorAll('.option-row');
             const filledOptions = [];
             let correctCount = 0;
@@ -434,6 +450,10 @@
 
             if (!questionText) {
                 errors.push('Заполните текст вопроса');
+            }
+
+            if (!questionPoints || questionPoints < 1) {
+                errors.push('Баллы за вопрос должны быть не меньше 1');
             }
 
             if (questionType === 'single' || questionType === 'multiple') {
@@ -466,10 +486,12 @@
         cards.forEach((card) => {
             const questionType = card.querySelector('.question-type').value;
             const questionText = card.querySelector('.question-text').value.trim();
+            const questionPoints = parseInt(card.querySelector('.question-points').value || 1);
 
             const item = {
                 text: questionText,
                 question_type: questionType,
+                points: questionPoints,
                 options: []
             };
 
