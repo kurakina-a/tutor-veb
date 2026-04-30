@@ -8,24 +8,28 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
-    <header class="site-header">
-        <div class="container header-inner">
-            <a href="{% url 'home' %}" class="logo">TutorPlatform</a>
 
-            <nav class="nav">
-                <a href="{% url 'home' %}">Главная</a>
-                <a href="{% url 'login' %}">Вход</a>
-                <a href="{% url 'register' %}">Регистрация</a>
-                <a href="{% url 'teacher_dashboard' %}">Преподаватель</a>
-                <a href="{% url 'student_dashboard' %}">Ученик</a>
-                <a href="{% url 'tests_list' %}">Тесты</a>
-            </nav>
-        </div>
-    </header>
+    {% if request.path != '/' %}
+        <header class="site-header">
+            <div class="container header-inner">
+                <a href="{% url 'home' %}" class="logo">TutorPlatform</a>
 
-    <main class="container">
+                <nav class="nav">
+                    <a href="{% url 'home' %}">Главная</a>
+                    <a href="{% url 'login' %}">Вход</a>
+                    <a href="{% url 'register' %}">Регистрация</a>
+                    <a href="{% url 'teacher_dashboard' %}">Преподаватель</a>
+                    <a href="{% url 'student_dashboard' %}">Ученик</a>
+                    <a href="{% url 'tests_list' %}">Тесты</a>
+                </nav>
+            </div>
+        </header>
+    {% endif %}
+
+    <main>
         {% block content %}
         {% endblock %}
     </main>
+
 </body>
 </html>
