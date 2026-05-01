@@ -47,4 +47,7 @@ urlpatterns = [
     path('teacher/pending_answers/', views.pending_answers, name='pending_answers'),
     path('teacher/add_comment/<int:answer_id>/', views.add_comment, name='add_comment'),
     path('student/my_comments/', views.my_comments, name='my_comments'),
+
+    path('teacher/statistics/', views.teacher_statistics, name='teacher_statistics'),
+    path('student/recommendations/', views.my_recommendations, name='my_recommendations'),
 ]

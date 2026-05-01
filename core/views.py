@@ -1185,3 +1185,83 @@ def grade_answer(request, answer_id):
         'comment_value': '',
         'user': request.user,
     })
+
+#аналитика для репетитора
+@login_required
+def teacher_statistics(request):
+    teacher = request.user
+    tests = Test.objects.filter(teacher=teacher).prefetch_related('questions')    
+    stats = []  #список для статистики по каждому тесту
+    for test in tests:
+        test_data = {
+            'id': test.id,
+            'title': test.title,
+            'questions': [],  
+            'total_wrong': 0,  
+            'total_answers': 0,  
+        }
+        for question in test.questions.all():
+            wrong_count = Answer.objects.filter(
+                question=question,
+                is_correct=False
+            ).count()
+            total_count = Answer.objects.filter(question=question).count()
+            error_percent = 0
+            if total_count > 0:
+                error_percent = int((wrong_count / total_count) * 100)
+            test_data['questions'].append({
+                'id': question.id,
+                'text': question.text,
+                'type': question.get_question_type_display(),
+                'wrong_count': wrong_count,
+                'total_count': total_count,
+                'error_percent': error_percent,
+                'points': question.points,
+            })
+            test_data['total_wrong'] += wrong_count
+            test_data['total_answers'] += total_count
+        if test_data['total_answers'] > 0:
+            test_data['total_error_percent'] = int((test_data['total_wrong'] / test_data['total_answers']) * 100)
+        else:
+            test_data['total_error_percent'] = 0
+        stats.append(test_data)
+    return render(request, 'teacher/statistics.html', {
+        'stats': stats,
+        'user': request.user,
+    })
+
+#рекомендации для ученика
+@login_required
+def my_recommendations(request):
+    student = request.user
+    from django.db.models import Count
+    wrong_answers = Answer.objects.filter(
+        student=student,
+        is_correct=False
+    ).values(
+        'question_id', 
+        'question__text', 
+        'question__question_type' 
+    ).annotate(
+        wrong_count=Count('id') 
+    ).order_by('-wrong_count')[:5] 
+    recommendations = [] #список рекомендаций
+    for wa in wrong_answers:
+        recommendations.append({
+            'question_text': wa['question__text'],
+            'wrong_count': wa['wrong_count'],
+            'question_type': wa['question__question_type'],
+        })
+    #общая статистика ученика
+    total_answers = Answer.objects.filter(student=student).count()
+    total_wrong = Answer.objects.filter(student=student, is_correct=False).count()
+    success_rate = 0
+    if total_answers > 0:
+        success_rate = int(((total_answers - total_wrong) / total_answers) * 100)
+    return render(request, 'student/recommendations.html', {
+        'recommendations': recommendations,
+        'total_answers': total_answers,
+        'total_wrong': total_wrong,
+        'success_rate': success_rate,
+        'user': request.user,
+    })

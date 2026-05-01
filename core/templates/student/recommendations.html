@@ -1,0 +1,20 @@
+<h1>Мои рекомендации</h1>
+
+<p><strong>Успеваемость:</strong> {{ success_rate }}%</p>
+<p>Правильных ответов: {{ total_answers|add:"-total_wrong" }} из {{ total_answers }}</p>
+
+<hr>
+
+{% if recommendations %}
+    <h2>Что нужно повторить:</h2>
+    {% for rec in recommendations %}
+        <div>
+            <p><strong>❌ Ошибок: {{ rec.wrong_count }} раз(а)</strong></p>
+            <p>Вопрос: {{ rec.question_text }}</p>
+            <p>💡 Совет: повторите материал по этому вопросу.</p>
+        </div>
+        <hr>
+    {% endfor %}
+{% else %}
+    <p>🎉 Отлично! У вас нет ошибок. Продолжайте в том же духе!</p>
+{% endif %}

@@ -1,0 +1,38 @@
+<h1>Аналитика тестов</h1>
+
+{% for test in stats %}
+    <hr>
+    <h2>{{ test.title }}</h2>
+    <p>Ошибок: {{ test.total_wrong }} из {{ test.total_answers }} ({{ test.total_error_percent }}%)</p>
+    
+    <table border="1" cellpadding="8" cellspacing="0">
+        <thead>
+            <tr>
+                <th>Вопрос</th>
+                <th>Тип</th>
+                <th>Ошибок</th>
+                <th>Всего ответов</th>
+                <th>% ошибок</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for q in test.questions %}
+            <tr>
+                <td>{{ q.text }}</td>
+                <td>{{ q.type }}</td>
+                <td>{{ q.wrong_count }}</td>
+                <td>{{ q.total_count }}</td>
+                <td>
+                    {% if q.error_percent > 50 %}
+                        <strong style="color: red;">{{ q.error_percent }}%</strong>
+                    {% else %}
+                        {{ q.error_percent }}%
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% empty %}
+    <p>Нет данных. Ученики ещё не проходили тесты.</p>
+{% endfor %}
