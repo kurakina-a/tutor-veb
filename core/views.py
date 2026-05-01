@@ -1068,9 +1068,14 @@ def add_comment(request, answer_id):
 #комментарии репетиторов к ответам ученика
 @login_required
 def my_comments(request):
+    if request.user.is_teacher:
+        messages.error(request, 'Доступ только для учеников')
+        return redirect('teacher_dashboard')
+    
     comments = Comment.objects.filter(
         answer__student=request.user
     ).select_related('answer__question', 'answer__test', 'teacher').order_by('-created_at')
+    
     return render(request, 'student/my_comments.html', {
         'comments': comments,
         'user': request.user,

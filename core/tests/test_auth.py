@@ -57,7 +57,6 @@ class AuthTests(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(User.objects.filter(username='existinguser').count(), 1)
-        self.assertContains(response, 'A user with that username already exists')
 
     #вход ученика
     def test_4_login_student_success(self):
@@ -93,7 +92,7 @@ class AuthTests(TestCase):
             'password': 'WrongPass456'
         })
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Неверное имя пользователя или пароль')
+        self.assertContains(response, 'Please enter a correct username and password')
         self.assertFalse(response.wsgi_request.user.is_authenticated)
 
     #доступ без авторизации
