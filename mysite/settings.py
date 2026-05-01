@@ -122,3 +122,16 @@ STATICFILES_DIRS = [
 AUTH_USER_MODEL = 'core.User'
 LOGOUT_REDIRECT_URL = '/'  
 LOGIN_URL = '/login/'
+
+
+import os
+import dj_database_url
+ALLOWED_HOSTS = ['*']
+DEBUG = False
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+MIDDLEWARE = [
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+] + MIDDLEWARE
+DATABASES = {
+    'default': dj_database_url.config(default='sqlite:///db.sqlite3')
+}
