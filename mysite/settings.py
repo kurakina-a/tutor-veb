@@ -127,7 +127,7 @@ LOGIN_URL = '/login/'
 import os
 import dj_database_url
 ALLOWED_HOSTS = ['*']
-DEBUG = False
+DEBUG = True
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',
