@@ -64,9 +64,24 @@
             ">
                 Мои ученики
             </a>
+
+            <a href="{% url 'teacher_statistics' %}" style="
+                text-decoration: none;
+                font-size: 18px;
+                font-weight: 500;
+                color: #355535;
+                padding-bottom: 8px;
+            ">
+                Аналитика
+            </a>
         </div>
 
-        <div style="width: 100%; height: 2px; background: #d9ead3; margin-bottom: 34px;"></div>
+        <div style="
+            width: 100%;
+            height: 2px;
+            background: #d9ead3;
+            margin-bottom: 34px;
+        "></div>
 
         <!-- КНОПКА -->
         <div style="display:flex; justify-content:center; margin-bottom: 34px;">
@@ -91,38 +106,70 @@
 
         <!-- СПИСОК -->
         {% if tests %}
-            <div style="display: flex; flex-wrap: wrap; gap: 24px;">
+            <div style="
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 20px;
+            ">
                 {% for test in tests %}
                     <div style="
-                        width: 260px;
                         background: #eaf8e8;
                         border-radius: 20px;
-                        padding: 20px;
+                        padding: 18px;
+                        min-height: 145px;
                         box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08);
+
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: space-between;
                     ">
                         <div style="
-                            background: #edf8e8;
-                            border-radius: 12px;
-                            padding: 12px;
+                            background: #f8fff7;
+                            border: 2px solid #d9ead3;
+                            border-radius: 14px;
+
+                            min-height: 64px;
+
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+
                             text-align: center;
+
+                            padding: 12px;
+                            box-sizing: border-box;
+
                             font-weight: 700;
+                            font-size: 18px;
+                            line-height: 1.25;
                             color: #204320;
-                            margin-bottom: 20px;
+
+                            word-break: break-word;
                         ">
                             {{ test.title }}
                         </div>
 
-                        <div style="display:flex; justify-content:center; gap: 12px;">
+                        <div style="
+                            display:flex;
+                            justify-content:center;
+                            gap: 12px;
+                            margin-top: 20px;
+                        ">
                             <a href="{% url 'test_edit' test.id %}" style="
                                 width: 44px;
                                 height: 38px;
                                 border-radius: 10px;
                                 background: #49b347;
                                 color: white;
+
                                 display: flex;
                                 align-items: center;
                                 justify-content: center;
+
                                 text-decoration: none;
+                                font-size: 18px;
+
+                                box-shadow: 0 4px 10px rgba(73, 179, 71, 0.18);
                             ">
                                 ✎
                             </a>
@@ -133,10 +180,15 @@
                                 border-radius: 10px;
                                 background: #49b347;
                                 color: white;
+
                                 display: flex;
                                 align-items: center;
                                 justify-content: center;
+
                                 text-decoration: none;
+                                font-size: 18px;
+
+                                box-shadow: 0 4px 10px rgba(73, 179, 71, 0.18);
                             ">
                                 🗑
                             </a>
@@ -144,6 +196,7 @@
                     </div>
                 {% endfor %}
             </div>
+
         {% else %}
             <div style="
                 background: #eaf8e8;
