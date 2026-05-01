@@ -1,0 +1,78 @@
+{% extends 'base_auth.html' %}
+
+{% block title %}Мои комментарии{% endblock %}
+
+{% block content %}
+<section style="min-height: 100vh; background: #d8f0d7; padding: 48px 24px 80px;">
+    <div style="width: 100%; max-width: 900px; margin: 0 auto;">
+
+        <h1 style="margin: 0 0 24px; font-size: 32px; font-weight: 700; color: #204320;">
+            Мои комментарии от преподавателя
+        </h1>
+
+        {% for comment in comments %}
+            <div style="background: #eaf8e8; border-radius: 20px; padding: 26px 30px; box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08); margin-bottom: 20px;">
+
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 18px;">
+
+                    <div>
+                        <h2 style="margin: 0 0 10px; font-size: 22px; color: #204320;">
+                            {{ comment.answer.test.title }}
+                        </h2>
+
+                        <p style="margin: 0; font-size: 16px; color: #244224;">
+                            <strong>Преподаватель:</strong>
+                            {{ comment.teacher.first_name }} {{ comment.teacher.last_name }}
+                        </p>
+                    </div>
+
+                    <div style="background: #ffffff; border: 2px solid #d3e7cf; border-radius: 999px; padding: 7px 14px; font-size: 14px; font-weight: 700; color: #315931; white-space: nowrap;">
+                        {{ comment.created_at|date:"d.m.Y H:i" }}
+                    </div>
+
+                </div>
+
+                <div style="background: #ffffff; border: 2px solid #d3e7cf; border-radius: 14px; padding: 16px; margin-bottom: 16px;">
+                    <p style="margin: 0 0 8px; color: #5f735f; font-weight: 700;">
+                        Вопрос:
+                    </p>
+
+                    <p style="margin: 0; color: #244224; line-height: 1.5;">
+                        {{ comment.answer.question.text }}
+                    </p>
+                </div>
+
+                <div style="background: #edf8e8; border-radius: 14px; padding: 16px; margin-bottom: 16px;">
+                    <p style="margin: 0 0 8px; color: #5f735f; font-weight: 700;">
+                        Ваш ответ:
+                    </p>
+
+                    <p style="margin: 0; color: #244224; line-height: 1.5; white-space: pre-line;">
+                        {{ comment.answer.answer_text|default:comment.answer.selected_option.text }}
+                    </p>
+                </div>
+
+                <div style="background: #f7fff6; border: 2px solid #9ed89b; border-radius: 14px; padding: 16px;">
+                    <p style="margin: 0 0 8px; color: #3f6f3f; font-weight: 700;">
+                        Комментарий преподавателя:
+                    </p>
+
+                    <p style="margin: 0; color: #244224; line-height: 1.6; white-space: pre-line;">
+                        {{ comment.text }}
+                    </p>
+                </div>
+
+            </div>
+        {% empty %}
+            <div style="background: #eaf8e8; border-radius: 20px; padding: 34px; text-align: center; color: #5f5f5f; font-size: 18px; box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08);">
+                У вас пока нет комментариев от преподавателя
+            </div>
+        {% endfor %}
+
+        <a href="{% url 'student_dashboard' %}" style="display: inline-flex; align-items: center; justify-content: center; height: 42px; padding: 0 20px; border-radius: 12px; background: #edf8e8; color: #264726; text-decoration: none; font-size: 16px; font-weight: 700; box-shadow: 0 4px 12px rgba(68, 102, 68, 0.08); margin-top: 10px;">
+            Назад в кабинет
+        </a>
+
+    </div>
+</section>
+{% endblock %}

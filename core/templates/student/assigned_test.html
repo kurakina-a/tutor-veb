@@ -1,0 +1,80 @@
+{% extends 'base_auth.html' %}
+
+{% block title %}Мои тесты{% endblock %}
+
+{% block content %}
+<section style="min-height: 100vh; background: #d8f0d7; padding: 48px 24px 80px;">
+    <div style="width: 100%; max-width: 1080px; margin: 0 auto;">
+
+        <h1 style="text-align:center; margin: 0 0 34px; font-size: 32px; color:#204320;">
+            Мои тесты
+        </h1>
+
+        {% if assigned_tests %}
+            <div style="display: flex; flex-direction: column; gap: 18px; align-items:center;">
+                {% for assigned in assigned_tests %}
+                    <div style="width:100%; max-width:600px; background:#eaf8e8; padding:24px; border-radius:20px; box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08);">
+
+                        <h2 style="margin:0 0 10px; color:#204320;">
+                            {{ assigned.test.title }}
+                        </h2>
+
+                        {% if assigned.deadline %}
+                            <p style="margin:0 0 10px; color:#244224;">
+                                Дедлайн: {{ assigned.deadline|date:"d.m.Y H:i" }}
+                            </p>
+                        {% else %}
+                            <p style="margin:0 0 10px; color:#244224;">
+                                Дедлайн не установлен
+                            </p>
+                        {% endif %}
+
+                        <p style="margin:0 0 18px; color:#244224;">
+                            Статус:
+                            {% if assigned.status == 'assigned' %}
+                                <strong style="color:#2d5a2d;">Назначен</strong>
+                            {% elif assigned.status == 'pending_review' %}
+                                <strong style="color:#b07800;">На проверке</strong>
+                            {% elif assigned.status == 'completed' %}
+                                <strong style="color:#2d5a2d;">Выполнен</strong>
+                            {% else %}
+                                <strong>{{ assigned.status }}</strong>
+                            {% endif %}
+                        </p>
+
+                        <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                            {% if assigned.status == 'assigned' %}
+                                <a href="{% url 'take_test' assigned.test.id %}" style="padding:10px 18px; border-radius:12px; background:#49b347; color:white; text-decoration:none; font-weight:700;">
+                                    ▶ Пройти
+                                </a>
+                            {% endif %}
+
+                            {% if assigned.status == 'completed' %}
+                                <a href="{% url 'test_results' assigned.id %}" style="padding:10px 18px; border-radius:12px; background:#edf8e8; color:#264726; text-decoration:none; font-weight:700;">
+                                    Результаты
+                                </a>
+                            {% elif assigned.status == 'pending_review' %}
+                                <span style="padding:10px 18px; border-radius:12px; background:#edf8e8; color:#264726; font-weight:700;">
+                                    Ожидает проверки
+                                </span>
+                            {% endif %}
+                        </div>
+
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="background:#eaf8e8; border-radius:20px; padding:34px; text-align:center; color:#5f5f5f; font-size:18px;">
+                Тестов пока нет
+            </div>
+        {% endif %}
+
+        <div style="text-align:center; margin-top:28px;">
+            <a href="{% url 'student_dashboard' %}" style="display:inline-flex; align-items:center; justify-content:center; height:42px; padding:0 20px; border-radius:12px; background:#edf8e8; color:#264726; text-decoration:none; font-size:16px; font-weight:700; box-shadow:0 4px 12px rgba(68, 102, 68, 0.08);">
+                Назад в кабинет
+            </a>
+        </div>
+
+    </div>
+</section>
+{% endblock %}

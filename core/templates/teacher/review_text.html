@@ -1,0 +1,188 @@
+{% extends 'base_auth.html' %}
+
+{% block title %}Проверка ответов{% endblock %}
+
+{% block content %}
+<section style="
+    min-height: 100vh;
+    background: #d8f0d7;
+    padding: 48px 24px 80px;
+">
+    <div style="
+        width: 100%;
+        max-width: 1000px;
+        margin: 0 auto;
+    ">
+
+        <div style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+            gap: 20px;
+            flex-wrap: wrap;
+        ">
+            <div>
+                <h1 style="
+                    margin: 0;
+                    font-size: 34px;
+                    color: #234223;
+                    font-weight: 800;
+                ">
+                    Проверка ответов
+                </h1>
+
+                <p style="
+                    margin: 10px 0 0 0;
+                    color: #5d725d;
+                    font-size: 16px;
+                ">
+                    Развёрнутые ответы учеников
+                </p>
+            </div>
+
+            <a href="{% url 'teacher_dashboard' %}" style="
+                text-decoration: none;
+                background: #eef6ea;
+                color: #234223;
+                padding: 14px 24px;
+                border-radius: 16px;
+                font-weight: 700;
+                font-size: 16px;
+                box-shadow: 0 6px 14px rgba(50, 80, 50, 0.08);
+            ">
+                Назад в кабинет
+            </a>
+        </div>
+
+        {% if answers %}
+            <div style="
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+            ">
+
+                {% for answer in answers %}
+                    <div style="
+                        background: #eaf6e8;
+                        border-radius: 26px;
+                        padding: 28px;
+                        box-shadow: 0 8px 22px rgba(50, 80, 50, 0.06);
+                    ">
+
+                        <div style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: flex-start;
+                            gap: 20px;
+                            flex-wrap: wrap;
+                        ">
+
+                            <div style="flex: 1; min-width: 280px;">
+
+                                <h2 style="
+                                    margin: 0 0 18px 0;
+                                    color: #1f3f1f;
+                                    font-size: 24px;
+                                    font-weight: 800;
+                                ">
+                                    {{ answer.test.title }}
+                                </h2>
+
+                                <div style="
+                                    display: flex;
+                                    flex-direction: column;
+                                    gap: 10px;
+                                    color: #4f674f;
+                                    font-size: 17px;
+                                ">
+                                    <div>
+                                        <strong>Ученик:</strong>
+                                        {{ answer.student.first_name }}
+                                        {{ answer.student.last_name }}
+                                        ({{ answer.student.username }})
+                                    </div>
+
+                                    <div>
+                                        <strong>Вопрос:</strong>
+                                        {{ answer.question.text }}
+                                    </div>
+
+                                    <div>
+                                        <strong>Баллов за вопрос:</strong>
+                                        {{ answer.question.points }}
+                                    </div>
+                                </div>
+
+                                <div style="
+                                    margin-top: 22px;
+                                ">
+                                    <div style="
+                                        font-size: 16px;
+                                        font-weight: 700;
+                                        color: #3c583c;
+                                        margin-bottom: 10px;
+                                    ">
+                                        Ответ ученика
+                                    </div>
+
+                                    <div style="
+                                        background: white;
+                                        border-radius: 18px;
+                                        padding: 18px;
+                                        color: #294529;
+                                        line-height: 1.5;
+                                        border: 2px solid #d4e6d1;
+                                        font-size: 16px;
+                                    ">
+                                        {{ answer.answer_text }}
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <div>
+                                <a href="{% url 'grade_answer' answer.id %}" style="
+                                    display: inline-flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    text-decoration: none;
+                                    background: #69b95f;
+                                    color: white;
+                                    padding: 14px 22px;
+                                    border-radius: 16px;
+                                    font-weight: 700;
+                                    font-size: 16px;
+                                    box-shadow: 0 8px 16px rgba(70, 140, 70, 0.18);
+                                    transition: 0.2s;
+                                ">
+                                    Оценить
+                                </a>
+                            </div>
+
+                        </div>
+
+                    </div>
+                {% endfor %}
+
+            </div>
+
+        {% else %}
+
+            <div style="
+                background: #eef7ec;
+                border-radius: 24px;
+                padding: 40px 28px;
+                text-align: center;
+                color: #5c715c;
+                font-size: 18px;
+                font-weight: 600;
+            ">
+                Нет ответов, ожидающих проверки
+            </div>
+
+        {% endif %}
+
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends 'base_auth.html' %}
+
+{% block title %}Работы ученика{% endblock %}
+
+{% block content %}
+<section style="min-height: 100vh; background: #d8f0d7; padding: 48px 24px 80px;">
+    <div style="width: 100%; max-width: 1080px; margin: 0 auto;">
+
+        <h1 style="margin: 0 0 12px; font-size: 32px; font-weight: 700; color: #204320;">
+            Работы ученика
+        </h1>
+
+        <p style="margin: 0 0 28px; font-size: 18px; color: #355535;">
+            {{ student.user.first_name }} {{ student.user.last_name }} — {{ student.user.username }}
+        </p>
+
+        <a href="{% url 'my_students' %}" style="display: inline-flex; align-items: center; justify-content: center; height: 42px; padding: 0 18px; border-radius: 12px; background: #edf8e8; color: #264726; text-decoration: none; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(68, 102, 68, 0.08); margin-bottom: 22px;">
+            Назад к ученикам
+        </a>
+
+        {% if rows %}
+            <div style="display: flex; flex-direction: column; gap: 18px;">
+                {% for row in rows %}
+                    <div style="background: #eaf8e8; border-radius: 20px; padding: 24px 26px; box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08);">
+
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+                            <div>
+                                <h2 style="margin: 0 0 10px; font-size: 22px; color: #204320;">
+                                    {{ row.result.test.title }}
+                                </h2>
+
+                                <p style="margin: 0 0 10px; color: #5f735f; font-size: 16px;">
+                                    Статус: <strong>{{ row.display_status }}</strong>
+                                </p>
+
+                                {% if row.result.deadline %}
+                                    <p style="margin: 0 0 10px; color: #5f735f; font-size: 16px;">
+                                        Дедлайн: {{ row.result.deadline|date:"d.m.Y H:i" }}
+                                    </p>
+                                {% else %}
+                                    <p style="margin: 0 0 10px; color: #5f735f; font-size: 16px;">
+                                        Дедлайн не установлен
+                                    </p>
+                                {% endif %}
+
+                                {% if row.result.completed_at %}
+                                    <p style="margin: 0 0 10px; color: #5f735f; font-size: 16px;">
+                                        Отправлен: {{ row.result.completed_at|date:"d.m.Y H:i" }}
+                                    </p>
+                                {% endif %}
+
+                                {% if row.result.score != None %}
+                                    <p style="margin: 0; color: #5f735f; font-size: 16px;">
+                                        Баллы: <strong>{{ row.result.score }} из {{ row.max_score }}</strong>
+                                    </p>
+                                {% else %}
+                                    <p style="margin: 0; color: #5f735f; font-size: 16px;">
+                                        Баллы: ожидает проверки
+                                    </p>
+                                {% endif %}
+                            </div>
+
+                            <div style="display: flex; align-items: flex-start;">
+                                {% if row.display_status == 'Выполнен' %}
+                                    <span style="background: #dff5dd; color: #287828; border: 2px solid #9ed89b; border-radius: 999px; padding: 7px 14px; font-size: 14px; font-weight: 700; white-space: nowrap;">
+                                        Выполнен
+                                    </span>
+                                {% elif row.display_status == 'На проверке' %}
+                                    <span style="background: #fff8df; color: #8a6a16; border: 2px solid #e4c86e; border-radius: 999px; padding: 7px 14px; font-size: 14px; font-weight: 700; white-space: nowrap;">
+                                        На проверке
+                                    </span>
+                                {% elif row.display_status == 'Дедлайн просрочен' %}
+                                    <span style="background: #fff2f2; color: #a33a3a; border: 2px solid #e3a3a3; border-radius: 999px; padding: 7px 14px; font-size: 14px; font-weight: 700; white-space: nowrap;">
+                                        Дедлайн просрочен
+                                    </span>
+                                {% else %}
+                                    <span style="background: #ffffff; color: #315931; border: 2px solid #d3e7cf; border-radius: 999px; padding: 7px 14px; font-size: 14px; font-weight: 700; white-space: nowrap;">
+                                        {{ row.display_status }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; margin-top: 22px;">
+                            {% if row.result.status == 'pending_review' %}
+                                <a href="{% url 'review_text_answers' row.result.id %}" style="display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 18px; border-radius: 12px; background: #49b347; color: white; text-decoration: none; font-size: 15px; font-weight: 700;">
+                                    Проверить работу
+                                </a>
+                            {% elif row.result.status == 'completed' %}
+                                <a href="{% url 'teacher_result_detail' row.result.id %}" style="display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 18px; border-radius: 12px; background: #edf8e8; color: #264726; text-decoration: none; font-size: 15px; font-weight: 700; box-shadow: 0 4px 12px rgba(68, 102, 68, 0.08);">
+                                    Посмотреть работу
+                                </a>
+                            {% else %}
+                                <span style="display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 18px; border-radius: 12px; background: #ffffff; color: #6d806d; font-size: 15px; font-weight: 700; border: 2px solid #d3e7cf;">
+                                    Работа ещё не отправлена
+                                </span>
+                            {% endif %}
+                        </div>
+
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="background: #eaf8e8; border-radius: 20px; padding: 34px; text-align: center; color: #5f5f5f; font-size: 18px; box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08);">
+                У этого ученика пока нет назначенных тестов
+            </div>
+        {% endif %}
+
+    </div>
+</section>
+{% endblock %}

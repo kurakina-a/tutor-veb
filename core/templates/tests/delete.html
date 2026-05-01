@@ -1,0 +1,71 @@
+{% extends 'base_auth.html' %}
+
+{% block title %}Удаление теста{% endblock %}
+
+{% block content %}
+<section style="min-height: 100vh; background: #d8f0d7; padding: 48px 24px;">
+    <div style="max-width: 500px; margin: 0 auto;">
+
+        <div style="
+            background: #eaf8e8;
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+        ">
+
+            <h1 style="color: #234b23; margin-bottom: 20px;">
+                Удалить тест?
+            </h1>
+
+            <p style="color: #355535; margin-bottom: 10px;">
+                Вы уверены, что хотите удалить тест
+            </p>
+
+            <p style="font-weight: 700; color: #234b23; margin-bottom: 20px;">
+                "{{ test.title }}"
+            </p>
+
+            <p style="font-size: 14px; color: #4f6650; margin-bottom: 30px;">
+                Все вопросы и варианты ответов тоже будут удалены.
+            </p>
+
+            <form method="post">
+                {% csrf_token %}
+
+                <button type="submit" style="
+                    width: 100%;
+                    height: 50px;
+                    border-radius: 14px;
+                    border: none;
+                    background: #b93f3f;
+                    color: white;
+                    font-size: 16px;
+                    font-weight: 700;
+                    cursor: pointer;
+                    margin-bottom: 10px;
+                ">
+                    Да, удалить
+                </button>
+
+                <a href="{% url 'test_list' %}" style="
+                    display: inline-block;
+                    width: 100%;
+                    text-align: center;
+                    padding: 10px;
+                    border-radius: 12px;
+                    border: 2px solid #154f14;
+                    background: #fff;
+                    color: #154f14;
+                    text-decoration: none;
+                    font-weight: 600;
+                ">
+                    Отмена
+                </a>
+            </form>
+
+        </div>
+
+    </div>
+</section>
+{% endblock %}

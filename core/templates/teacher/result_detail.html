@@ -1,0 +1,437 @@
+{% extends 'base_auth.html' %}
+
+{% block title %}Работа ученика{% endblock %}
+
+{% block content %}
+<section style="min-height: 100vh; background: #d8f0d7; padding: 48px 24px 80px;">
+    <div style="width: 100%; max-width: 900px; margin: 0 auto;">
+
+        <h1 style="margin: 0 0 16px; font-size: 32px; font-weight: 700; color: #204320;">
+            Работа ученика
+        </h1>
+
+        <div style="background: #eaf8e8; border-radius: 20px; padding: 26px 30px; box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08); margin-bottom: 26px;">
+            <h2 style="margin: 0 0 14px; font-size: 24px; color: #204320;">
+                {{ test.title }}
+            </h2>
+
+            <p style="margin: 0 0 10px; font-size: 18px; color: #244224;">
+                <strong>Ученик:</strong>
+                {{ test_result.student.first_name }} {{ test_result.student.last_name }} — {{ test_result.student.username }}
+            </p>
+
+            <p style="margin: 0 0 10px; font-size: 18px; color: #244224;">
+                <strong>Результат:</strong>
+                {% if test_result.score != None %}
+                    {{ test_result.score }} из {{ max_score }}
+                {% else %}
+                    Ожидает проверки
+                {% endif %}
+            </p>
+
+            {% if test_result.completed_at %}
+                <p style="margin: 0; font-size: 16px; color: #5f735f;">
+                    Отправлен: {{ test_result.completed_at|date:"d.m.Y H:i" }}
+                </p>
+            {% endif %}
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div style="
+                    margin-bottom: 18px;
+                    background: #dff5dd;
+                    border: 2px solid #9ed89b;
+                    color: #287828;
+                    border-radius: 14px;
+                    padding: 14px 16px;
+                    font-size: 15px;
+                    font-weight: 700;
+                ">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if answers_count == 0 %}
+            <div class="empty-card">
+                Ответы по этой работе не найдены
+            </div>
+        {% endif %}
+
+        {% for q in questions_details %}
+            <div class="question-card">
+
+                <div class="question-header">
+                    <div>
+                        <h3 class="question-title">
+                            Вопрос {{ forloop.counter }}
+                        </h3>
+
+                        <div style="
+                            margin-top: 6px;
+                            color: #5f735f;
+                            font-size: 15px;
+                            font-weight: 700;
+                        ">
+                            {{ q.points }} балл.
+                        </div>
+                    </div>
+
+                    {% if q.type == 'text' %}
+                        <span class="status-badge status-wait">
+                            Развёрнутый ответ
+                        </span>
+                    {% elif q.is_correct %}
+                        <span class="status-badge status-correct">
+                            Правильно
+                        </span>
+                    {% else %}
+                        <span class="status-badge status-wrong">
+                            Неправильно
+                        </span>
+                    {% endif %}
+                </div>
+
+                <p class="question-text">
+                    {{ q.text }}
+                </p>
+
+                {% if q.type == 'text' %}
+                    <div class="answer-box">
+                        <p class="box-label">Ответ ученика:</p>
+
+                        <p class="box-text">
+                            {{ q.user_answer|default:"(не введён)" }}
+                        </p>
+                    </div>
+
+                {% else %}
+
+                    {% if q.options %}
+                        <div class="options-list">
+
+                            {% for option in q.options %}
+                                <div class="
+                                    option-card
+                                    {% if option.is_correct and option.is_selected %}
+                                        option-correct-selected
+                                    {% elif option.is_correct %}
+                                        option-correct
+                                    {% elif option.is_selected %}
+                                        option-selected-wrong
+                                    {% else %}
+                                        option-default
+                                    {% endif %}
+                                ">
+
+                                    <div class="option-text">
+                                        {{ option.text }}
+                                    </div>
+
+                                    <div class="option-labels">
+
+                                        {% if option.is_selected %}
+                                            <span class="option-label option-label-selected">
+                                                Выбрал ученик
+                                            </span>
+                                        {% endif %}
+
+                                        {% if option.is_correct %}
+                                            <span class="option-label option-label-correct">
+                                                Правильный ответ
+                                            </span>
+                                        {% endif %}
+
+                                    </div>
+
+                                </div>
+                            {% endfor %}
+
+                        </div>
+                    {% endif %}
+
+                    <div class="answer-box">
+                        <p class="box-label">Ответ ученика:</p>
+
+                        <p class="box-text">
+                            {{ q.user_answer|default:"(не выбран)" }}
+                        </p>
+                    </div>
+
+                {% endif %}
+
+                <div style="margin-top: 18px;">
+
+                    <div style="
+                        font-size: 15px;
+                        font-weight: 700;
+                        color: #496649;
+                        margin-bottom: 10px;
+                    ">
+                        Комментарии преподавателя
+                    </div>
+
+                    {% if q.comments %}
+                        <div style="
+                            display: flex;
+                            flex-direction: column;
+                            gap: 10px;
+                            margin-bottom: 16px;
+                        ">
+
+                            {% for comment in q.comments %}
+                                <div style="
+                                    background: #f4fbf2;
+                                    border: 2px solid #d7ead2;
+                                    border-radius: 14px;
+                                    padding: 12px 14px;
+                                ">
+
+                                    <div style="
+                                        color: #234223;
+                                        font-size: 14px;
+                                        font-weight: 700;
+                                        margin-bottom: 6px;
+                                    ">
+                                        {{ comment.teacher.first_name }}
+                                        {{ comment.teacher.last_name }}
+                                    </div>
+
+                                    <div style="
+                                        color: #496649;
+                                        line-height: 1.5;
+                                    ">
+                                        {{ comment.text }}
+                                    </div>
+
+                                </div>
+                            {% endfor %}
+
+                        </div>
+                    {% endif %}
+
+                    {% if q.answer_id %}
+                        <form method="post" style="
+                            display: flex;
+                            flex-direction: column;
+                            gap: 12px;
+                        ">
+                            {% csrf_token %}
+
+                            <input type="hidden" name="answer_id" value="{{ q.answer_id }}">
+
+                            <textarea
+                                name="comment_text"
+                                placeholder="Комментарий к вопросу"
+                                style="
+                                    min-height: 90px;
+                                    border: 2px solid #d5e7d1;
+                                    border-radius: 14px;
+                                    padding: 14px;
+                                    resize: vertical;
+                                    font-size: 15px;
+                                    font-family: inherit;
+                                    outline: none;
+                                "
+                            ></textarea>
+
+                            <button type="submit" style="
+                                align-self: flex-start;
+                                border: none;
+                                background: #69b95f;
+                                color: white;
+                                padding: 12px 18px;
+                                border-radius: 12px;
+                                font-weight: 700;
+                                cursor: pointer;
+                            ">
+                                Сохранить комментарий
+                            </button>
+
+                        </form>
+                    {% endif %}
+
+                </div>
+
+            </div>
+        {% endfor %}
+
+        <a href="{% url 'teacher_checking' test_result.student.student.id %}" class="back-btn">
+            Назад к работам ученика
+        </a>
+
+    </div>
+</section>
+
+<style>
+    .question-card {
+        background: #eaf8e8;
+        border-radius: 20px;
+        padding: 24px 28px;
+        box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08);
+        margin-bottom: 18px;
+    }
+
+    .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        margin-bottom: 14px;
+    }
+
+    .question-title {
+        margin: 0;
+        font-size: 20px;
+        color: #204320;
+    }
+
+    .question-text {
+        margin: 0 0 18px;
+        font-size: 17px;
+        color: #244224;
+        font-weight: 700;
+        line-height: 1.5;
+    }
+
+    .status-badge {
+        border-radius: 999px;
+        padding: 7px 14px;
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .status-correct {
+        background: #dff5dd;
+        color: #287828;
+        border: 2px solid #9ed89b;
+    }
+
+    .status-wrong {
+        background: #fff2f2;
+        color: #a33a3a;
+        border: 2px solid #e3a3a3;
+    }
+
+    .status-wait {
+        background: #fff8df;
+        color: #8a6a16;
+        border: 2px solid #e4c86e;
+    }
+
+    .options-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .option-card {
+        border-radius: 16px;
+        padding: 14px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .option-default {
+        background: #ffffff;
+        border: 2px solid #d3e7cf;
+    }
+
+    .option-correct-selected {
+        background: #dff5dd;
+        border: 2px solid #62b85f;
+    }
+
+    .option-correct {
+        background: #edf8e8;
+        border: 2px solid #62b85f;
+    }
+
+    .option-selected-wrong {
+        background: #fff2f2;
+        border: 2px solid #e3a3a3;
+    }
+
+    .option-text {
+        color: #294b29;
+        font-size: 16px;
+        line-height: 1.4;
+    }
+
+    .option-labels {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .option-label {
+        border-radius: 999px;
+        padding: 6px 10px;
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .option-label-selected {
+        background: #ffffff;
+        color: #315931;
+    }
+
+    .option-label-correct {
+        background: #69b95f;
+        color: #ffffff;
+    }
+
+    .answer-box {
+        background: #edf8e8;
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 14px;
+    }
+
+    .box-label {
+        margin: 0 0 8px;
+        color: #5f735f;
+        font-weight: 700;
+    }
+
+    .box-text {
+        margin: 0;
+        color: #244224;
+        line-height: 1.5;
+        white-space: pre-line;
+    }
+
+    .empty-card {
+        background: #eaf8e8;
+        border-radius: 20px;
+        padding: 34px;
+        text-align: center;
+        color: #5f5f5f;
+        font-size: 18px;
+        margin-bottom: 20px;
+        box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08);
+    }
+
+    .back-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 42px;
+        padding: 0 20px;
+        border-radius: 12px;
+        background: #edf8e8;
+        color: #264726;
+        text-decoration: none;
+        font-size: 16px;
+        font-weight: 700;
+        box-shadow: 0 4px 12px rgba(68, 102, 68, 0.08);
+    }
+</style>
+{% endblock %}

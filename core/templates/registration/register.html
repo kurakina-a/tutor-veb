@@ -1,0 +1,99 @@
+{% extends 'base_auth.html' %}
+
+{% block title %}Регистрация{% endblock %}
+
+{% block content %}
+<section class="auth-page">
+    <div class="auth-card">
+        <h1 class="auth-title">Регистрация</h1>
+
+        <form class="auth-form" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="role" value="{{ role }}">
+
+            {% if form.non_field_errors %}
+                <div style="
+                    color: red;
+                    margin-bottom: 15px;
+                    padding: 10px;
+                    background: #ffeeee;
+                    border-radius: 8px;
+                    text-align: center;
+                ">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- ЛОГИН -->
+            <input 
+                type="text" 
+                name="username" 
+                placeholder="Логин" 
+                class="auth-input"
+                value="{{ form.data.username }}"
+            >
+
+            <!-- ИМЯ -->
+            <input 
+                type="text" 
+                name="first_name" 
+                placeholder="Имя" 
+                class="auth-input"
+                value="{{ form.data.first_name }}"
+            >
+
+            <!-- ФАМИЛИЯ -->
+            <input 
+                type="text" 
+                name="last_name" 
+                placeholder="Фамилия" 
+                class="auth-input"
+                value="{{ form.data.last_name }}"
+            >
+
+            <!-- ПАРОЛЬ -->
+            {% if form.password.errors %}
+                <input 
+                    type="password" 
+                    name="password" 
+                    placeholder="Пароль"
+                    class="auth-input"
+                    style="border: 2px solid red;"
+                >
+            {% else %}
+                <input 
+                    type="password" 
+                    name="password" 
+                    placeholder="Пароль"
+                    class="auth-input"
+                >
+            {% endif %}
+
+            <!-- ОШИБКА ПАРОЛЯ -->
+            {% if form.password.errors %}
+                <div style="
+                    color: red;
+                    margin-top: -10px;
+                    margin-bottom: 10px;
+                    font-size: 14px;
+                ">
+                    {{ form.password.errors.0 }}
+                </div>
+            {% endif %}
+
+            <button type="submit" class="auth-button">
+                Регистрация
+            </button>
+        </form>
+
+        <p class="auth-footer">
+            Уже есть аккаунт?
+            <a href="{% url 'login' %}?role={{ role }}" class="auth-link">
+                Войти
+            </a>
+        </p>
+    </div>
+</section>
+{% endblock %}

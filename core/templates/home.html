@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}Кто вы?{% endblock %}
+
+{% block content %}
+<section style="
+    min-height: 100vh;
+    width: 100%;
+    background: #d8f0d7;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+">
+    <div style="text-align: center;">
+        <h1 style="
+            font-size: 64px;
+            margin: 0 0 36px;
+            color: #0d1733;
+        ">
+            Кто вы?
+        </h1>
+
+        <div style="
+            display: flex;
+            justify-content: center;
+            gap: 28px;
+            flex-wrap: wrap;
+        ">
+            <a href="{% url 'login' %}?role=student" class="card">
+                <div class="icon-box">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9.5 12 5l9 4.5-9 4.5L3 9.5Z"/>
+                        <path d="M7 11.5v3.2c0 .8 2.2 2.3 5 2.3s5-1.5 5-2.3v-3.2"/>
+                        <path d="M21 10v4"/>
+                    </svg>
+                </div>
+                <div class="card-title">Ученик</div>
+            </a>
+
+            <a href="{% url 'login' %}?role=teacher" class="card">
+                <div class="icon-box">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="5" y="6" width="14" height="9" rx="1"/>
+                        <path d="M12 15v4"/>
+                        <path d="M8.5 19h7"/>
+                        <path d="M9 19l-2 2"/>
+                        <path d="M15 19l2 2"/>
+                    </svg>
+                </div>
+                <div class="card-title">Репетитор</div>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}

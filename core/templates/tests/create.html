@@ -1,0 +1,560 @@
+{% extends 'base_auth.html' %}
+
+{% block title %}Создание теста{% endblock %}
+
+{% block content %}
+<section style="min-height: 100vh; background: #d8f0d7; padding: 48px 24px 80px;">
+    <div style="width: 100%; max-width: 560px; margin: 0 auto;">
+
+        <div style="
+            background: #eaf8e8;
+            border-radius: 20px;
+            padding: 34px 32px 36px;
+            box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08);
+        ">
+
+            <h1 style="
+                margin: 0 0 22px 0;
+                text-align: center;
+                font-size: 24px;
+                color: #204320;
+                font-weight: 700;
+            ">
+                Создание теста
+            </h1>
+
+            <form method="post" id="test-form" style="display: flex; flex-direction: column; gap: 18px;">
+                {% csrf_token %}
+                {{ form.questions_data }}
+
+                <div>
+                    <input
+                        type="text"
+                        id="id_title"
+                        name="title"
+                        value="{{ form.title.value|default:'' }}"
+                        placeholder="Название теста"
+                        class="{% if form.title.errors %}input-error{% endif %}"
+                    >
+
+                    <div id="title-error-box" {% if not form.title.errors %}style="display:none;"{% else %}style="
+                        margin-top: 10px;
+                        background: #fff2f2;
+                        border: 2px solid #e3a3a3;
+                        color: #a33a3a;
+                        border-radius: 14px;
+                        padding: 12px 14px;
+                        font-size: 15px;
+                        font-weight: 600;
+                    "{% endif %}>
+                        Заполните обязательные поля
+                    </div>
+                </div>
+
+                <textarea
+                    id="id_description"
+                    name="description"
+                    placeholder="Описание теста"
+                >{{ form.description.value|default:'' }}</textarea>
+
+                <div id="global-question-error-box" style="
+                    display: none;
+                    background: #fff2f2;
+                    border: 2px solid #e3a3a3;
+                    color: #a33a3a;
+                    border-radius: 14px;
+                    padding: 12px 14px;
+                    font-size: 15px;
+                    font-weight: 600;
+                "></div>
+
+                <div id="questions-container" style="display: flex; flex-direction: column; gap: 16px;"></div>
+
+                <button type="button" id="add-question-btn" class="main-btn light-btn">
+                    Добавить вопрос
+                </button>
+
+                <button type="submit" class="main-btn">
+                    Сохранить тест
+                </button>
+            </form>
+
+        </div>
+    </div>
+</section>
+
+<style>
+    #id_title,
+    #id_description,
+    .builder-select,
+    .builder-input,
+    .builder-textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 2px solid #d3e7cf;
+        border-radius: 14px;
+        background: #ffffff;
+        padding: 14px 16px;
+        font-size: 16px;
+        color: #294b29;
+        outline: none;
+        font-family: inherit;
+    }
+
+    .input-error {
+        border-color: #d96b6b !important;
+        box-shadow: 0 0 0 4px rgba(217,107,107,0.12);
+    }
+
+    #id_title::placeholder,
+    #id_description::placeholder,
+    .builder-input::placeholder,
+    .builder-textarea::placeholder {
+        color: #88a187;
+    }
+
+    #id_title:focus,
+    #id_description:focus,
+    .builder-select:focus,
+    .builder-input:focus,
+    .builder-textarea:focus {
+        border-color: #8dc98d;
+        box-shadow: 0 0 0 4px rgba(141, 201, 141, 0.15);
+    }
+
+    #id_description {
+        min-height: 74px;
+        resize: vertical;
+    }
+
+    .question-card {
+        border: 2px dashed #5c6f5c;
+        border-radius: 18px;
+        background: #ddf2dd;
+        padding: 18px;
+    }
+
+    .question-title {
+        margin: 0 0 14px 0;
+        color: #234b23;
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .question-error-box {
+        display: none;
+        margin: 0 0 14px 0;
+        background: #fff2f2;
+        border: 2px solid #e3a3a3;
+        color: #a33a3a;
+        border-radius: 14px;
+        padding: 12px 14px;
+        font-size: 15px;
+        font-weight: 600;
+        white-space: pre-line;
+    }
+
+    .question-top {
+        display: grid;
+        grid-template-columns: 1fr 30px;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .remove-question-btn,
+    .remove-option-btn {
+        border: none;
+        background: transparent;
+        color: #c31818;
+        font-size: 24px;
+        font-weight: 800;
+        cursor: pointer;
+        line-height: 1;
+        padding: 0;
+    }
+
+    .options-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 12px;
+    }
+
+    .option-row {
+        display: grid;
+        grid-template-columns: 24px 1fr 28px;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .option-check {
+        width: 18px;
+        height: 18px;
+        accent-color: #6eb66e;
+    }
+
+    .main-btn {
+        height: 46px;
+        border: none;
+        border-radius: 14px;
+        background: #69b95f;
+        color: white;
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 6px 14px rgba(92, 160, 92, 0.18);
+    }
+
+    .light-btn {
+        background: #97d18f;
+    }
+
+    .small-btn {
+        margin-top: 12px;
+        height: 40px;
+        border: none;
+        border-radius: 12px;
+        background: #97d18f;
+        color: white;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .options-block {
+        margin-top: 14px;
+    }
+</style>
+
+{{ questions_data|json_script:"initial-questions-data" }}
+
+<script>
+    const addQuestionBtn = document.getElementById('add-question-btn');
+    const questionsContainer = document.getElementById('questions-container');
+    const testForm = document.getElementById('test-form');
+    const questionsDataInput = document.getElementById('id_questions_data');
+    const globalQuestionErrorBox = document.getElementById('global-question-error-box');
+    const titleErrorBox = document.getElementById('title-error-box');
+    const titleInput = document.getElementById('id_title');
+    const initialQuestionsDataEl = document.getElementById('initial-questions-data');
+    const initialQuestionsData = initialQuestionsDataEl ? JSON.parse(initialQuestionsDataEl.textContent) : [];
+
+    titleInput.addEventListener('input', () => {
+        if (titleInput.value.trim()) {
+            titleInput.classList.remove('input-error');
+            titleErrorBox.style.display = 'none';
+        }
+    });
+
+    function updateQuestionNumbers() {
+        const cards = questionsContainer.querySelectorAll('.question-card');
+
+        cards.forEach((card, index) => {
+            const title = card.querySelector('.question-title');
+
+            if (title) {
+                title.textContent = `Вопрос ${index + 1}`;
+            }
+        });
+    }
+
+    function createOptionRow(typeValue = 'single', text = '', isCorrect = false) {
+        const row = document.createElement('div');
+        row.className = 'option-row';
+
+        const inputType = typeValue === 'multiple' ? 'checkbox' : 'radio';
+        const radioGroup = 'group_' + Math.random().toString(36).slice(2);
+        const safeText = String(text || '').replace(/"/g, '&quot;');
+
+        row.innerHTML = `
+            <input class="option-check" type="${inputType}" ${inputType === 'radio' ? `name="${radioGroup}"` : ''} ${isCorrect ? 'checked' : ''}>
+            <input type="text" class="builder-input option-text" placeholder="Вариант ответа" value="${safeText}">
+            <button type="button" class="remove-option-btn">×</button>
+        `;
+
+        row.querySelector('.remove-option-btn').addEventListener('click', () => {
+            row.remove();
+        });
+
+        return row;
+    }
+
+    function applyTypeToOptions(card) {
+        const typeSelect = card.querySelector('.question-type');
+        const optionsBlock = card.querySelector('.options-block');
+        const optionRows = card.querySelectorAll('.option-row');
+
+        if (typeSelect.value === 'text') {
+            optionsBlock.style.display = 'none';
+            return;
+        }
+
+        optionsBlock.style.display = 'block';
+
+        if (typeSelect.value === 'single') {
+            const groupName = 'single_' + Math.random().toString(36).slice(2);
+
+            optionRows.forEach((row) => {
+                const check = row.querySelector('.option-check');
+                const wasChecked = check.checked;
+
+                check.type = 'radio';
+                check.name = groupName;
+                check.checked = wasChecked;
+            });
+
+        } else {
+
+            optionRows.forEach((row) => {
+                const check = row.querySelector('.option-check');
+                const wasChecked = check.checked;
+
+                check.type = 'checkbox';
+                check.removeAttribute('name');
+                check.checked = wasChecked;
+            });
+        }
+    }
+
+    function createQuestionCard(data = null) {
+        const card = document.createElement('div');
+        card.className = 'question-card';
+
+        const questionType = data && data.question_type ? data.question_type : 'single';
+        const questionText = data && data.text ? data.text : '';
+        const questionPoints = data && data.points ? data.points : 1;
+
+        card.innerHTML = `
+            <div class="question-title">Вопрос</div>
+            <div class="question-error-box"></div>
+
+            <div class="question-top">
+                <select class="builder-select question-type">
+                    <option value="single" ${questionType === 'single' ? 'selected' : ''}>Один вариант</option>
+                    <option value="multiple" ${questionType === 'multiple' ? 'selected' : ''}>Множественный выбор</option>
+                    <option value="text" ${questionType === 'text' ? 'selected' : ''}>Развёрнутый ответ</option>
+                </select>
+
+                <button type="button" class="remove-question-btn">×</button>
+            </div>
+
+            <textarea class="builder-textarea question-text" placeholder="Текст вопроса"></textarea>
+
+            <div style="margin-top: 12px;">
+                <input
+                    type="number"
+                    min="1"
+                    class="builder-input question-points"
+                    placeholder="Баллы за вопрос"
+                    value="${questionPoints}"
+                >
+            </div>
+
+            <div class="options-block">
+                <div class="options-wrap"></div>
+
+                <button type="button" class="small-btn add-option-btn">
+                    Добавить вариант
+                </button>
+            </div>
+        `;
+
+        card.querySelector('.question-text').value = questionText;
+
+        const typeSelect = card.querySelector('.question-type');
+        const removeQuestionBtn = card.querySelector('.remove-question-btn');
+        const addOptionBtn = card.querySelector('.add-option-btn');
+        const optionsWrap = card.querySelector('.options-wrap');
+
+        removeQuestionBtn.addEventListener('click', () => {
+            card.remove();
+            updateQuestionNumbers();
+        });
+
+        addOptionBtn.addEventListener('click', () => {
+            optionsWrap.appendChild(createOptionRow(typeSelect.value));
+            applyTypeToOptions(card);
+        });
+
+        typeSelect.addEventListener('change', () => {
+            applyTypeToOptions(card);
+        });
+
+        if (data && Array.isArray(data.options) && data.options.length) {
+
+            data.options.forEach((opt) => {
+                optionsWrap.appendChild(
+                    createOptionRow(questionType, opt.text || '', !!opt.is_correct)
+                );
+            });
+
+        } else if (questionType !== 'text') {
+
+            optionsWrap.appendChild(createOptionRow(questionType));
+            optionsWrap.appendChild(createOptionRow(questionType));
+        }
+
+        applyTypeToOptions(card);
+
+        return card;
+    }
+
+    function clearQuestionErrors() {
+        const cards = questionsContainer.querySelectorAll('.question-card');
+
+        cards.forEach((card) => {
+            const box = card.querySelector('.question-error-box');
+
+            box.style.display = 'none';
+            box.textContent = '';
+        });
+
+        globalQuestionErrorBox.style.display = 'none';
+        globalQuestionErrorBox.textContent = '';
+    }
+
+    function validateQuestionsFromCards(cards) {
+        let hasError = false;
+
+        if (cards.length === 0) {
+            globalQuestionErrorBox.style.display = 'block';
+            globalQuestionErrorBox.textContent = 'Добавьте хотя бы 1 вопрос';
+            return true;
+        }
+
+        cards.forEach((card) => {
+            const box = card.querySelector('.question-error-box');
+            const questionType = card.querySelector('.question-type').value;
+            const questionText = card.querySelector('.question-text').value.trim();
+
+            const optionRows = card.querySelectorAll('.option-row');
+
+            const filledOptions = [];
+
+            let correctCount = 0;
+
+            const errors = [];
+
+            optionRows.forEach((row) => {
+                const optionText = row.querySelector('.option-text').value.trim();
+                const isCorrect = row.querySelector('.option-check').checked;
+
+                if (optionText) {
+                    filledOptions.push({
+                        text: optionText,
+                        is_correct: isCorrect
+                    });
+
+                    if (isCorrect) {
+                        correctCount += 1;
+                    }
+                }
+            });
+
+            if (!questionText) {
+                errors.push('Заполните текст вопроса');
+            }
+
+            if (questionType === 'single' || questionType === 'multiple') {
+
+                if (filledOptions.length < 2) {
+                    errors.push('Добавьте минимум 2 варианта ответа');
+                }
+
+                if (questionType === 'single' && correctCount !== 1) {
+                    errors.push('Для "Один вариант" должен быть ровно 1 правильный ответ');
+                }
+
+                if (questionType === 'multiple' && correctCount < 1) {
+                    errors.push('Для "Множественный выбор" нужен хотя бы 1 правильный ответ');
+                }
+            }
+
+            if (errors.length > 0) {
+                hasError = true;
+
+                box.style.display = 'block';
+                box.textContent = errors.join('\n');
+            }
+        });
+
+        return hasError;
+    }
+
+    function buildQuestionsPayload(cards) {
+        const questions = [];
+
+        cards.forEach((card) => {
+            const questionType = card.querySelector('.question-type').value;
+            const questionText = card.querySelector('.question-text').value.trim();
+
+            const questionPoints = parseInt(
+                card.querySelector('.question-points').value || 1
+            );
+
+            const item = {
+                text: questionText,
+                question_type: questionType,
+                points: questionPoints,
+                options: []
+            };
+
+            if (questionType !== 'text') {
+                const optionRows = card.querySelectorAll('.option-row');
+
+                optionRows.forEach((row) => {
+                    const optionText = row.querySelector('.option-text').value.trim();
+                    const isCorrect = row.querySelector('.option-check').checked;
+
+                    if (optionText) {
+                        item.options.push({
+                            text: optionText,
+                            is_correct: isCorrect
+                        });
+                    }
+                });
+            }
+
+            questions.push(item);
+        });
+
+        return questions;
+    }
+
+    addQuestionBtn.addEventListener('click', () => {
+        questionsContainer.appendChild(createQuestionCard());
+        updateQuestionNumbers();
+    });
+
+    testForm.addEventListener('submit', (event) => {
+        const cards = questionsContainer.querySelectorAll('.question-card');
+
+        clearQuestionErrors();
+
+        const questions = buildQuestionsPayload(cards);
+
+        questionsDataInput.value = JSON.stringify(questions);
+
+        const hasQuestionErrors = validateQuestionsFromCards(cards);
+
+        if (hasQuestionErrors) {
+            event.preventDefault();
+            return;
+        }
+    });
+
+    if (Array.isArray(initialQuestionsData) && initialQuestionsData.length) {
+
+        initialQuestionsData.forEach((item) => {
+            questionsContainer.appendChild(createQuestionCard(item));
+        });
+
+    } else {
+
+        questionsContainer.appendChild(createQuestionCard());
+    }
+
+    updateQuestionNumbers();
+</script>
+{% endblock %}

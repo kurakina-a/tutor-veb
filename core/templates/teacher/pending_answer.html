@@ -1,0 +1,63 @@
+{% extends 'base_auth.html' %}
+
+{% block title %}Ответы на проверку{% endblock %}
+
+{% block content %}
+<section style="min-height: 100vh; background: #d8f0d7; padding: 48px 24px 80px;">
+    <div style="width: 100%; max-width: 900px; margin: 0 auto;">
+
+        <h1 style="margin: 0 0 24px; font-size: 32px; font-weight: 700; color: #204320;">
+            Ответы на проверку
+        </h1>
+
+        {% for answer in pending %}
+            <div style="background: #eaf8e8; border-radius: 20px; padding: 24px 28px; box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08); margin-bottom: 18px;">
+
+                <p style="margin: 0 0 10px; font-size: 16px; color: #244224;">
+                    <strong>Ученик:</strong>
+                    {{ answer.student.first_name }} {{ answer.student.last_name }}
+                </p>
+
+                <p style="margin: 0 0 10px; font-size: 16px; color: #244224;">
+                    <strong>Тест:</strong>
+                    {{ answer.test.title }}
+                </p>
+
+                <div style="background: #ffffff; border: 2px solid #d3e7cf; border-radius: 14px; padding: 16px; margin: 16px 0;">
+                    <p style="margin: 0 0 8px; color: #5f735f; font-weight: 700;">
+                        Вопрос:
+                    </p>
+
+                    <p style="margin: 0; color: #244224; line-height: 1.5;">
+                        {{ answer.question.text }}
+                    </p>
+                </div>
+
+                <div style="background: #edf8e8; border-radius: 14px; padding: 16px; margin-bottom: 18px;">
+                    <p style="margin: 0 0 8px; color: #5f735f; font-weight: 700;">
+                        Ответ:
+                    </p>
+
+                    <p style="margin: 0; color: #244224; line-height: 1.5; white-space: pre-line;">
+                        {{ answer.answer_text }}
+                    </p>
+                </div>
+
+                <a href="{% url 'add_comment' answer.id %}" style="display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 18px; border-radius: 12px; background: #49b347; color: white; text-decoration: none; font-size: 15px; font-weight: 700;">
+                    Добавить комментарий
+                </a>
+
+            </div>
+        {% empty %}
+            <div style="background: #eaf8e8; border-radius: 20px; padding: 34px; text-align: center; color: #5f5f5f; font-size: 18px; box-shadow: 0 10px 24px rgba(74, 120, 74, 0.08);">
+                Нет ответов, ожидающих проверки
+            </div>
+        {% endfor %}
+
+        <a href="{% url 'teacher_dashboard' %}" style="display: inline-flex; align-items: center; justify-content: center; height: 42px; padding: 0 20px; border-radius: 12px; background: #edf8e8; color: #264726; text-decoration: none; font-size: 16px; font-weight: 700; box-shadow: 0 4px 12px rgba(68, 102, 68, 0.08); margin-top: 10px;">
+            Назад в кабинет
+        </a>
+
+    </div>
+</section>
+{% endblock %}
