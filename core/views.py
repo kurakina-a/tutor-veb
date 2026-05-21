@@ -550,6 +550,9 @@ def add_student(request):
 #назначить тест ученику
 @login_required
 def assign_test(request, student_id):
+    from django.utils import timezone
+    from datetime import datetime
+
     teacher = Teacher.objects.get(user=request.user)
 
     try:
@@ -567,19 +570,31 @@ def assign_test(request, student_id):
     if request.method == 'POST':
         test_id = request.POST.get('test_id')
         deadline_raw = request.POST.get('deadline')
-        deadline = parse_datetime(deadline_raw) if deadline_raw else None
 
-        if deadline and deadline < timezone.now():
-            messages.error(request, 'Дедлайн не может быть в прошлом!')
-            return redirect('assign_test', student_id=student_id)
+        # Валидация дедлайна
+        deadline = None
+        if deadline_raw:
+            print("Проверяем дедлайн:", deadline_raw)
+            try:
+                deadline_naive = datetime.strptime(deadline_raw, '%Y-%m-%dT%H:%M')
+                deadline = timezone.make_aware(deadline_naive)
+                now = timezone.now()
+                print("deadline:", deadline)
+                print("now:", now)
+                if deadline < now:
+                    print("Дедлайн в прошлом! Ошибка.")
+                    messages.error(request, 'Дедлайн не может быть в прошлом!')
+                    return redirect('assign_test', student_id=student_id)
+            except Exception as e:
+                print("Ошибка парсинга дедлайна:", e)
+                messages.error(request, 'Некорректный формат даты')
+                return redirect('assign_test', student_id=student_id)
 
         if not test_id:
             error = 'Выберите тест'
         else:
             try:
                 test = Test.objects.get(id=test_id, teacher=request.user)
-                deadline = parse_datetime(deadline_raw) if deadline_raw else None
-
                 test_result, created = TestResult.objects.get_or_create(
                     student=student.user,
                     test=test,
@@ -588,12 +603,12 @@ def assign_test(request, student_id):
                         'deadline': deadline,
                     }
                 )
-
                 if not created:
                     error = f'Тест "{test.title}" уже был назначен этому ученику'
                 else:
                     success = f'Тест "{test.title}" назначен ученику {student.user.username}'
-
+                    messages.success(request, success)
+                    return redirect('my_students')
             except Test.DoesNotExist:
                 error = 'Тест не найден'
 
@@ -603,9 +618,10 @@ def assign_test(request, student_id):
         'user': request.user,
         'error': error,
         'success': success,
-        'selected_test_id': request.POST.get('test_id', ''),
-        'deadline_value': request.POST.get('deadline', ''),
+        'selected_test_id': request.POST.get('test_id', '') if request.method == 'POST' else '',
+        'deadline_value': request.POST.get('deadline', '') if request.method == 'POST' else '',
     })
+
 #список назначенных тестов у ученика
 @login_required
 def my_assigned_tests(request):
