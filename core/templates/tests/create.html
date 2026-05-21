@@ -25,6 +25,9 @@
 
             <form method="post" id="test-form" style="display: flex; flex-direction: column; gap: 18px;">
                 {% csrf_token %}
+
+                <input type="hidden" name="questions_data" id="id_questions_data">
+
                 {{ form.questions_data }}
 
                 <div>

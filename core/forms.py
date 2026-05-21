@@ -57,19 +57,11 @@ class CustomUserCreationForm(forms.ModelForm):
 class TestForm(forms.ModelForm):
     class Meta:
         model = Test
-        fields = ['title', 'description', 'deadline']
+        fields = ['title', 'description']
         widgets = {
-            'deadline': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
             'title': forms.TextInput(attrs={'placeholder': 'Название теста'}),
             'description': forms.Textarea(attrs={'placeholder': 'Описание теста', 'rows': 3}),
         }
-
-    def clean_deadline(self):
-        deadline = self.cleaned_data.get('deadline')
-        if deadline and deadline < timezone.now():
-            raise forms.ValidationError("Дедлайн не может быть в прошлом!")
-        return deadline
-
 
 class QuestionForm(forms.ModelForm):
     class Meta:

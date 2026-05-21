@@ -220,9 +220,9 @@ def _parse_questions_from_post(request):
 def _validate_questions_data(questions_data):
     errors = []
 
-    if not questions_data:
-        errors.append('Добавьте хотя бы 1 вопрос')
-        return errors
+  #  if not questions_data:
+ #       errors.append('Добавьте хотя бы 1 вопрос')
+   #     return errors
 
     for index, question in enumerate(questions_data, start=1):
         text = (question.get('text') or '').strip()
@@ -258,6 +258,7 @@ def _validate_questions_data(questions_data):
 @login_required
 def test_create(request):
     if request.method == 'POST':
+    
         form = TestForm(request.POST)
         posted_questions_data = _parse_questions_from_post(request)
         question_errors = _validate_questions_data(posted_questions_data)
@@ -566,6 +567,11 @@ def assign_test(request, student_id):
     if request.method == 'POST':
         test_id = request.POST.get('test_id')
         deadline_raw = request.POST.get('deadline')
+        deadline = parse_datetime(deadline_raw) if deadline_raw else None
+
+        if deadline and deadline < timezone.now():
+            messages.error(request, 'Дедлайн не может быть в прошлом!')
+            return redirect('assign_test', student_id=student_id)
 
         if not test_id:
             error = 'Выберите тест'
