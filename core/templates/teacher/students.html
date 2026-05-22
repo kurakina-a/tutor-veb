@@ -67,7 +67,12 @@
                         </div>
 
                         <div style="font-size: 22px; color: #2d5a2d;">
-                            🗑
+                            <a href="{% url 'remove_student' item.student.id %}"
+                                onclick="return confirm('Удалить ученика {{ item.student.user.first_name }} {{ item.student.user.last_name }} из списка?');"
+                                style="font-size: 22px; color: #d9534f; text-decoration: none; cursor: pointer;"
+                                title="Удалить ученика">
+                                🗑
+                            </a>
                         </div>
                     </div>
                 {% endfor %}

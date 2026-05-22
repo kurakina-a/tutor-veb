@@ -26,6 +26,12 @@
                 </div>
             {% endif %}
 
+            {% if form.username.errors %}
+                <div style="color: red; margin-bottom: 15px; padding: 10px; background: #ffeeee; border-radius: 8px; text-align: center;">
+                    Пользователь с таким логином уже существует
+                </div>
+            {% endif %}
+
             <!-- ЛОГИН -->
             <input 
                 type="text" 

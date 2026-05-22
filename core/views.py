@@ -12,11 +12,13 @@ from .forms import CustomUserCreationForm, OptionForm, QuestionForm, TestForm
 from .models import (Answer, Comment, Option, Question, Student, Teacher,
                      TeacherStudent, Test, TestResult, User)
 
+
 def get_teacher(user):
     try:
         return Teacher.objects.get(user=user)
     except Teacher.DoesNotExist:
         return None
+
 
 def create_questions_from_data(test, questions_data):
     for index, q in enumerate(questions_data, start=1):
@@ -47,8 +49,10 @@ def create_questions_from_data(test, questions_data):
                     is_correct=bool(opt.get("is_correct")),
                 )
 
+
 def home(request):
     return render(request, "home.html")
+
 
 def register(request):
     role = request.GET.get("role") or request.POST.get("role") or "student"
@@ -90,6 +94,7 @@ def register(request):
 
     return render(request, "registration/register.html", {"form": form, "role": role})
 
+
 @login_required
 def teacher_dashboard(request):
     return render(
@@ -103,6 +108,7 @@ def teacher_dashboard(request):
             "role": "Преподаватель",
         },
     )
+
 
 @login_required
 def student_dashboard(request):
@@ -118,9 +124,11 @@ def student_dashboard(request):
         },
     )
 
+
 @login_required
 def student_tasks(request):
     return render(request, "student/tasks.html")
+
 
 @login_required
 def tests_list(request):
@@ -133,6 +141,7 @@ def tests_list(request):
             "user": request.user,
         },
     )
+
 
 @login_required
 def teacher_checking(request, student_id=None):
@@ -188,6 +197,7 @@ def teacher_checking(request, student_id=None):
         },
     )
 
+
 class CustomLoginView(LoginView):
     template_name = "registration/login.html"
 
@@ -222,6 +232,7 @@ class CustomLoginView(LoginView):
             return "/teacher/dashboard/"
         return "/student/dashboard/"
 
+
 @login_required
 def test_list(request):
     tests = Test.objects.filter(teacher=request.user)
@@ -233,6 +244,7 @@ def test_list(request):
             "user": request.user,
         },
     )
+
 
 def _build_questions_data(test):
     result = []
@@ -255,6 +267,7 @@ def _build_questions_data(test):
 
     return result
 
+
 def _parse_questions_from_post(request):
     raw = request.POST.get("questions_data", "")
     if not raw:
@@ -264,6 +277,7 @@ def _parse_questions_from_post(request):
         return data if isinstance(data, list) else []
     except json.JSONDecodeError:
         return []
+
 
 def _validate_questions_data(questions_data):
     errors = []
@@ -302,6 +316,7 @@ def _validate_questions_data(questions_data):
                 )
 
     return errors
+
 
 @login_required
 def test_create(request):
@@ -342,6 +357,7 @@ def test_create(request):
             "user": request.user,
         },
     )
+
 
 @login_required
 def test_edit(request, test_id):
@@ -386,6 +402,7 @@ def test_edit(request, test_id):
         },
     )
 
+
 @login_required
 def test_delete(request, test_id):
     test = get_object_or_404(Test, id=test_id, teacher=request.user)
@@ -402,6 +419,7 @@ def test_delete(request, test_id):
             "user": request.user,
         },
     )
+
 
 @login_required
 def question_add(request, test_id):
@@ -426,6 +444,7 @@ def question_add(request, test_id):
         },
     )
 
+
 @login_required
 def question_edit(request, question_id):
     question = get_object_or_404(Question, id=question_id, test__teacher=request.user)
@@ -448,6 +467,7 @@ def question_edit(request, question_id):
         },
     )
 
+
 @login_required
 def question_delete(request, question_id):
     question = get_object_or_404(Question, id=question_id, test__teacher=request.user)
@@ -463,6 +483,7 @@ def question_delete(request, question_id):
             "user": request.user,
         },
     )
+
 
 @login_required
 def option_add(request, question_id):
@@ -487,6 +508,7 @@ def option_add(request, question_id):
         },
     )
 
+
 @login_required
 def option_edit(request, option_id):
     option = get_object_or_404(
@@ -510,6 +532,7 @@ def option_edit(request, option_id):
         },
     )
 
+
 @login_required
 def option_delete(request, option_id):
     option = get_object_or_404(
@@ -528,6 +551,7 @@ def option_delete(request, option_id):
         },
     )
 
+
 @login_required
 def my_students(request):
     teacher = get_teacher(request.user)
@@ -544,6 +568,7 @@ def my_students(request):
             "user": request.user,
         },
     )
+
 
 @login_required
 def add_student(request):
@@ -589,6 +614,7 @@ def add_student(request):
             "username_value": username_value,
         },
     )
+
 
 @login_required
 def assign_test(request, student_id):
@@ -675,6 +701,7 @@ def assign_test(request, student_id):
         },
     )
 
+
 @login_required
 def my_assigned_tests(request):
     assigned_tests = (
@@ -691,6 +718,7 @@ def my_assigned_tests(request):
             "user": request.user,
         },
     )
+
 
 def _build_take_question_items(test, post_data=None, question_errors=None):
     items = []
@@ -731,6 +759,7 @@ def _build_take_question_items(test, post_data=None, question_errors=None):
 
     return items
 
+
 @login_required
 def take_test(request, test_id):
     try:
@@ -762,6 +791,7 @@ def take_test(request, test_id):
             "general_error": None,
         },
     )
+
 
 @login_required
 def submit_test(request, test_id):
@@ -876,6 +906,7 @@ def submit_test(request, test_id):
 
     return redirect("test_results", test_result_id=test_result.id)
 
+
 @login_required
 def test_results(request, test_result_id):
     try:
@@ -980,7 +1011,9 @@ def test_results(request, test_result_id):
         )
 
     max_score = sum(question.points for question in test.questions.all())
-
+    percent = 0
+    if max_score > 0:
+        percent = int((test_result.score / max_score) * 100) if test_result.score else 0
     return render(
         request,
         "student/results.html",
@@ -989,9 +1022,11 @@ def test_results(request, test_result_id):
             "test_result": test_result,
             "questions_details": questions_details,
             "max_score": max_score,
+            "percent": percent,
             "user": request.user,
         },
     )
+
 
 @login_required
 def teacher_result_detail(request, test_result_id):
@@ -1120,6 +1155,7 @@ def teacher_result_detail(request, test_result_id):
         },
     )
 
+
 @login_required
 def pending_answers(request):
     pending = (
@@ -1139,6 +1175,7 @@ def pending_answers(request):
             "user": request.user,
         },
     )
+
 
 @login_required
 def add_comment(request, answer_id):
@@ -1164,6 +1201,7 @@ def add_comment(request, answer_id):
         },
     )
 
+
 @login_required
 def my_comments(request):
     if request.user.is_teacher:
@@ -1184,6 +1222,7 @@ def my_comments(request):
             "user": request.user,
         },
     )
+
 
 @login_required
 def review_text_answers(request, test_result_id):
@@ -1211,6 +1250,7 @@ def review_text_answers(request, test_result_id):
             "user": request.user,
         },
     )
+
 
 @login_required
 def grade_answer(request, answer_id):
@@ -1301,11 +1341,12 @@ def grade_answer(request, answer_id):
         },
     )
 
+
 @login_required
 def teacher_statistics(request):
     teacher = request.user
     tests = Test.objects.filter(teacher=teacher).prefetch_related("questions")
-    stats = []  
+    stats = []
     for test in tests:
         test_data = {
             "id": test.id,
@@ -1335,6 +1376,7 @@ def teacher_statistics(request):
             )
             test_data["total_wrong"] += wrong_count
             test_data["total_answers"] += total_count
+        test_data["questions"].sort(key=lambda x: x["error_percent"], reverse=True)
         if test_data["total_answers"] > 0:
             test_data["total_error_percent"] = int(
                 (test_data["total_wrong"] / test_data["total_answers"]) * 100
@@ -1351,6 +1393,7 @@ def teacher_statistics(request):
         },
     )
 
+
 @login_required
 def my_recommendations(request):
     student = request.user
@@ -1362,7 +1405,7 @@ def my_recommendations(request):
         .annotate(wrong_count=Count("id"))
         .order_by("-wrong_count")[:5]
     )
-    recommendations = []  
+    recommendations = []
     for wa in wrong_answers:
         recommendations.append(
             {
@@ -1387,3 +1430,18 @@ def my_recommendations(request):
             "user": request.user,
         },
     )
+
+
+@login_required
+def remove_student(request, student_id):
+    teacher = Teacher.objects.get(user=request.user)
+    try:
+        teacher_student = TeacherStudent.objects.get(
+            teacher=teacher, student_id=student_id
+        )
+        student_name = f"{teacher_student.student.user.first_name} {teacher_student.student.user.last_name}"
+        teacher_student.delete()
+        messages.success(request, f"Ученик {student_name} удалён из списка")
+    except TeacherStudent.DoesNotExist:
+        messages.error(request, "Ученик не найден")
+    return redirect("my_students")

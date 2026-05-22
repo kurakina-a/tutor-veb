@@ -71,4 +71,9 @@ urlpatterns = [
     path(
         "student/recommendations/", views.my_recommendations, name="my_recommendations"
     ),
+    path(
+        "teacher/students/remove/<int:student_id>/",
+        views.remove_student,
+        name="remove_student",
+    ),
 ]

@@ -19,6 +19,7 @@
                 <strong>Ваш результат:</strong>
                 {% if test_result.score != None %}
                     {{ test_result.score }} из {{ max_score }}
+                    ({% widthratio test_result.score max_score 100 %}%)
                 {% else %}
                     Ожидает проверки
                 {% endif %}

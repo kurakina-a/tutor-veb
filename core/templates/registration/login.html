@@ -34,13 +34,11 @@
                 </div>
             {% elif form.non_field_errors %}
                 <div style="color: red; margin-bottom: 20px; padding: 10px; background: #ffeeee; border-radius: 8px; text-align: center;">
-                    {% for error in form.non_field_errors %}
-                        {{ error }}
-                    {% endfor %}
+                    Неверное имя пользователя или пароль
                 </div>
             {% elif form.errors %}
                 <div style="color: red; margin-bottom: 20px; padding: 10px; background: #ffeeee; border-radius: 8px; text-align: center;">
-                    Неверный логин или пароль
+                    Неверное имя пользователя или пароль
                 </div>
             {% endif %}
         {% endif %}
