@@ -6,17 +6,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0005_alter_option_is_correct_alter_option_text_and_more'),
+        ("core", "0005_alter_option_is_correct_alter_option_text_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='test',
-            name='deadline',
+            model_name="test",
+            name="deadline",
         ),
         migrations.AddField(
-            model_name='testresult',
-            name='deadline',
-            field=models.DateTimeField(blank=True, null=True, verbose_name='Дедлайн'),
+            model_name="testresult",
+            name="deadline",
+            field=models.DateTimeField(blank=True, null=True, verbose_name="Дедлайн"),
         ),
     ]

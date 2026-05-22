@@ -6,23 +6,32 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0004_alter_question_options_question_question_type_and_more'),
+        ("core", "0004_alter_question_options_question_question_type_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='option',
-            name='is_correct',
-            field=models.BooleanField(default=False, verbose_name='Правильный?'),
+            model_name="option",
+            name="is_correct",
+            field=models.BooleanField(default=False, verbose_name="Правильный?"),
         ),
         migrations.AlterField(
-            model_name='option',
-            name='text',
-            field=models.CharField(max_length=300, verbose_name='Текст варианта'),
+            model_name="option",
+            name="text",
+            field=models.CharField(max_length=300, verbose_name="Текст варианта"),
         ),
         migrations.AlterField(
-            model_name='question',
-            name='question_type',
-            field=models.CharField(choices=[('single', 'Один вариант'), ('multiple', 'Множественный выбор'), ('text', 'Развёрнутый ответ')], default='single', max_length=10, verbose_name='Тип вопроса'),
+            model_name="question",
+            name="question_type",
+            field=models.CharField(
+                choices=[
+                    ("single", "Один вариант"),
+                    ("multiple", "Множественный выбор"),
+                    ("text", "Развёрнутый ответ"),
+                ],
+                default="single",
+                max_length=10,
+                verbose_name="Тип вопроса",
+            ),
         ),
     ]

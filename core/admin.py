@@ -1,5 +1,7 @@
 from django.contrib import admin
-from .models import User, Teacher, Student, Test, Question, Option, Answer, Comment, TestResult, TeacherStudent
+
+from .models import (Answer, Comment, Option, Question, Student, Teacher,
+                     TeacherStudent, Test, TestResult, User)
 
 admin.site.register(User)
 admin.site.register(Teacher)

@@ -6,22 +6,27 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0003_test_deadline'),
+        ("core", "0003_test_deadline"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='question',
-            options={'ordering': ['order', 'id']},
+            name="question",
+            options={"ordering": ["order", "id"]},
         ),
         migrations.AddField(
-            model_name='question',
-            name='question_type',
-            field=models.CharField(choices=[('choice', 'Выбор варианта'), ('text', 'Развёрнутый ответ')], default='choice', max_length=10, verbose_name='Тип вопроса'),
+            model_name="question",
+            name="question_type",
+            field=models.CharField(
+                choices=[("choice", "Выбор варианта"), ("text", "Развёрнутый ответ")],
+                default="choice",
+                max_length=10,
+                verbose_name="Тип вопроса",
+            ),
         ),
         migrations.AlterField(
-            model_name='question',
-            name='order',
-            field=models.PositiveIntegerField(default=0, verbose_name='Порядок'),
+            model_name="question",
+            name="order",
+            field=models.PositiveIntegerField(default=0, verbose_name="Порядок"),
         ),
     ]

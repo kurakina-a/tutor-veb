@@ -1,37 +1,70 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import HttpResponse
+import json
+from datetime import datetime
+
+from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView
-from django.contrib import messages
-from .forms import CustomUserCreationForm, TestForm, QuestionForm, OptionForm
-from .models import Test, Teacher, Student, Question, Option, User, TeacherStudent, Answer, TestResult, Comment
-import json
-from datetime import datetime
-from django.utils.dateparse import parse_datetime
-from django.utils.timezone import now
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
+from .forms import CustomUserCreationForm, OptionForm, QuestionForm, TestForm
+from .models import (Answer, Comment, Option, Question, Student, Teacher,
+                     TeacherStudent, Test, TestResult, User)
+
+def get_teacher(user):
+    try:
+        return Teacher.objects.get(user=user)
+    except Teacher.DoesNotExist:
+        return None
+
+def create_questions_from_data(test, questions_data):
+    for index, q in enumerate(questions_data, start=1):
+        text = (q.get("text") or "").strip()
+        question_type = q.get("question_type") or "single"
+        options = q.get("options") or []
+
+        if not text:
+            continue
+
+        question = Question.objects.create(
+            test=test,
+            text=text,
+            question_type=question_type,
+            order=index,
+            points=int(q.get("points") or 1),
+        )
+
+        if question_type != "text":
+            for opt in options:
+                option_text = (opt.get("text") or "").strip()
+                if not option_text:
+                    continue
+
+                Option.objects.create(
+                    question=question,
+                    text=option_text,
+                    is_correct=bool(opt.get("is_correct")),
+                )
 
 def home(request):
-    return render(request, 'home.html')
-
+    return render(request, "home.html")
 
 def register(request):
-    role = request.GET.get('role') or request.POST.get('role') or 'student'
+    role = request.GET.get("role") or request.POST.get("role") or "student"
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
 
         if form.is_valid():
             user = form.save(commit=False)
 
-            user.username = form.cleaned_data['username']
-            user.first_name = form.cleaned_data['first_name']
-            user.last_name = form.cleaned_data['last_name']
-            user.set_password(form.cleaned_data['password'])
+            user.username = form.cleaned_data["username"]
+            user.first_name = form.cleaned_data["first_name"]
+            user.last_name = form.cleaned_data["last_name"]
+            user.set_password(form.cleaned_data["password"])
 
-            if role == 'teacher':
+            if role == "teacher":
                 user.is_teacher = True
                 user.is_student = False
             else:
@@ -40,7 +73,7 @@ def register(request):
 
             user.save()
 
-            if role == 'teacher':
+            if role == "teacher":
                 Teacher.objects.get_or_create(user=user)
             else:
                 Student.objects.get_or_create(user=user)
@@ -48,118 +81,134 @@ def register(request):
             login(request, user)
 
             if user.is_teacher:
-                return redirect('teacher_dashboard')
-            return redirect('student_dashboard')
+                return redirect("teacher_dashboard")
+            return redirect("student_dashboard")
         else:
             print("Ошибки формы:", form.errors)
     else:
         form = CustomUserCreationForm()
 
-    return render(request, 'registration/register.html', {
-        'form': form,
-        'role': role
-    })
-
+    return render(request, "registration/register.html", {"form": form, "role": role})
 
 @login_required
 def teacher_dashboard(request):
-    return render(request, 'teacher/dashboard.html', {
-        'user': request.user,
-        'first_name': request.user.first_name,
-        'last_name': request.user.last_name,
-        'username': request.user.username,
-        'role': 'Преподаватель',
-    })
-
+    return render(
+        request,
+        "teacher/dashboard.html",
+        {
+            "user": request.user,
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
+            "username": request.user.username,
+            "role": "Преподаватель",
+        },
+    )
 
 @login_required
 def student_dashboard(request):
-    return render(request, 'student/dashboard.html', {
-        'user': request.user,
-        'first_name': request.user.first_name,
-        'last_name': request.user.last_name,
-        'username': request.user.username,
-        'role': 'Ученик',
-    })
-
+    return render(
+        request,
+        "student/dashboard.html",
+        {
+            "user": request.user,
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
+            "username": request.user.username,
+            "role": "Ученик",
+        },
+    )
 
 @login_required
 def student_tasks(request):
-    return render(request, 'student/tasks.html')
-
+    return render(request, "student/tasks.html")
 
 @login_required
 def tests_list(request):
     tests = Test.objects.filter(teacher=request.user)
-    return render(request, 'teacher/tests_list.html', {
-        'tests': tests,
-        'user': request.user,
-    })
-
+    return render(
+        request,
+        "teacher/tests_list.html",
+        {
+            "tests": tests,
+            "user": request.user,
+        },
+    )
 
 @login_required
 def teacher_checking(request, student_id=None):
     teacher = Teacher.objects.get(user=request.user)
 
     teacher_student = get_object_or_404(
-        TeacherStudent,
-        teacher=teacher,
-        student_id=student_id
+        TeacherStudent, teacher=teacher, student_id=student_id
     )
 
     student = teacher_student.student
 
-    results = TestResult.objects.filter(
-        student=student.user,
-        test__teacher=request.user
-    ).select_related('test').order_by('-id')
+    results = (
+        TestResult.objects.filter(student=student.user, test__teacher=request.user)
+        .select_related("test")
+        .order_by("-id")
+    )
 
     rows = []
 
     for result in results:
-        if result.deadline and result.deadline < timezone.now() and result.status == 'assigned':
-            display_status = 'Дедлайн просрочен'
-        elif result.status == 'assigned':
-            display_status = 'Назначен'
-        elif result.status == 'pending_review':
-            display_status = 'На проверке'
-        elif result.status == 'completed':
-            display_status = 'Выполнен'
+        if (
+            result.deadline
+            and result.deadline < timezone.now()
+            and result.status == "assigned"
+        ):
+            display_status = "Дедлайн просрочен"
+        elif result.status == "assigned":
+            display_status = "Назначен"
+        elif result.status == "pending_review":
+            display_status = "На проверке"
+        elif result.status == "completed":
+            display_status = "Выполнен"
         else:
             display_status = result.status
 
         max_score = sum(question.points for question in result.test.questions.all())
 
-        rows.append({
-            'result': result,
-            'display_status': display_status,
-            'max_score': max_score,
-        })
+        rows.append(
+            {
+                "result": result,
+                "display_status": display_status,
+                "max_score": max_score,
+            }
+        )
 
-    return render(request, 'teacher/student_results.html', {
-        'student': student,
-        'rows': rows,
-        'user': request.user,
-    })
-
+    return render(
+        request,
+        "teacher/student_results.html",
+        {
+            "student": student,
+            "rows": rows,
+            "user": request.user,
+        },
+    )
 
 class CustomLoginView(LoginView):
-    template_name = 'registration/login.html'
+    template_name = "registration/login.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['role'] = self.request.GET.get('role') or self.request.POST.get('role') or 'student'
+        context["role"] = (
+            self.request.GET.get("role") or self.request.POST.get("role") or "student"
+        )
         return context
 
     def form_valid(self, form):
-        role = self.request.POST.get('role') or self.request.GET.get('role') or 'student'
+        role = (
+            self.request.POST.get("role") or self.request.GET.get("role") or "student"
+        )
         user = form.get_user()
 
-        if role == 'teacher' and not user.is_teacher:
+        if role == "teacher" and not user.is_teacher:
             form.add_error(None, "Несоответствие роли")
             return self.form_invalid(form)
 
-        if role == 'student' and not user.is_student:
+        if role == "student" and not user.is_student:
             form.add_error(None, "Несоответствие роли")
             return self.form_invalid(form)
 
@@ -170,44 +219,44 @@ class CustomLoginView(LoginView):
         user = self.request.user
 
         if user.is_teacher:
-            return '/teacher/dashboard/'
-        return '/student/dashboard/'
-
+            return "/teacher/dashboard/"
+        return "/student/dashboard/"
 
 @login_required
 def test_list(request):
     tests = Test.objects.filter(teacher=request.user)
-    return render(request, 'tests/list.html', {
-        'tests': tests,
-        'user': request.user,
-    })
-
+    return render(
+        request,
+        "tests/list.html",
+        {
+            "tests": tests,
+            "user": request.user,
+        },
+    )
 
 def _build_questions_data(test):
     result = []
 
-    for question in test.questions.all().order_by('order', 'id'):
+    for question in test.questions.all().order_by("order", "id"):
         item = {
-            'text': question.text,
-            'question_type': question.question_type,
-            'points': question.points,
-            'options': []
+            "text": question.text,
+            "question_type": question.question_type,
+            "points": question.points,
+            "options": [],
         }
 
-        if question.question_type != 'text':
+        if question.question_type != "text":
             for option in question.options.all():
-                item['options'].append({
-                    'text': option.text,
-                    'is_correct': option.is_correct
-                })
+                item["options"].append(
+                    {"text": option.text, "is_correct": option.is_correct}
+                )
 
         result.append(item)
 
     return result
 
-
 def _parse_questions_from_post(request):
-    raw = request.POST.get('questions_data', '')
+    raw = request.POST.get("questions_data", "")
     if not raw:
         return []
     try:
@@ -216,49 +265,47 @@ def _parse_questions_from_post(request):
     except json.JSONDecodeError:
         return []
 
-
 def _validate_questions_data(questions_data):
     errors = []
-
-  #  if not questions_data:
- #       errors.append('Добавьте хотя бы 1 вопрос')
-   #     return errors
-
     for index, question in enumerate(questions_data, start=1):
-        text = (question.get('text') or '').strip()
-        question_type = question.get('question_type') or 'single'
-        options = question.get('options') or []
+        text = (question.get("text") or "").strip()
+        question_type = question.get("question_type") or "single"
+        options = question.get("options") or []
 
         if not text:
-            errors.append(f'Вопрос {index}: заполните текст вопроса')
+            errors.append(f"Вопрос {index}: заполните текст вопроса")
             continue
 
-        if question_type in ['single', 'multiple']:
+        if question_type in ["single", "multiple"]:
             non_empty_options = []
             for option in options:
-                option_text = (option.get('text') or '').strip()
+                option_text = (option.get("text") or "").strip()
                 if option_text:
                     non_empty_options.append(option)
 
             if len(non_empty_options) < 2:
-                errors.append(f'Вопрос {index}: добавьте минимум 2 варианта ответа')
+                errors.append(f"Вопрос {index}: добавьте минимум 2 варианта ответа")
                 continue
 
-            correct_count = sum(1 for option in non_empty_options if option.get('is_correct'))
+            correct_count = sum(
+                1 for option in non_empty_options if option.get("is_correct")
+            )
 
-            if question_type == 'single' and correct_count != 1:
-                errors.append(f'Вопрос {index}: для "Один вариант" должен быть ровно 1 правильный ответ')
+            if question_type == "single" and correct_count != 1:
+                errors.append(
+                    f'Вопрос {index}: для "Один вариант" должен быть ровно 1 правильный ответ'
+                )
 
-            if question_type == 'multiple' and correct_count < 1:
-                errors.append(f'Вопрос {index}: для "Множественный выбор" нужен хотя бы 1 правильный ответ')
+            if question_type == "multiple" and correct_count < 1:
+                errors.append(
+                    f'Вопрос {index}: для "Множественный выбор" нужен хотя бы 1 правильный ответ'
+                )
 
     return errors
 
-
 @login_required
 def test_create(request):
-    if request.method == 'POST':
-    
+    if request.method == "POST":
         form = TestForm(request.POST)
         posted_questions_data = _parse_questions_from_post(request)
         question_errors = _validate_questions_data(posted_questions_data)
@@ -268,242 +315,235 @@ def test_create(request):
             test.teacher = request.user
             test.save()
 
-            for index, q in enumerate(posted_questions_data, start=1):
-                text = (q.get('text') or '').strip()
-                question_type = q.get('question_type') or 'single'
-                options = q.get('options') or []
+            create_questions_from_data(test, posted_questions_data)
 
-                if not text:
-                    continue
+            return redirect("test_list")
 
-                question = Question.objects.create(
-                    test=test,
-                    text=text,
-                    question_type=question_type,
-                    order=index,
-                    points=int(q.get('points') or 1)
-                )
-
-                if question_type != 'text':
-                    for opt in options:
-                        option_text = (opt.get('text') or '').strip()
-                        if not option_text:
-                            continue
-
-                        Option.objects.create(
-                            question=question,
-                            text=option_text,
-                            is_correct=bool(opt.get('is_correct'))
-                        )
-
-            return redirect('test_list')
-
-        return render(request, 'tests/create.html', {
-            'form': form,
-            'questions_data': posted_questions_data,
-            'question_errors': question_errors,
-            'user': request.user,
-        })
+        return render(
+            request,
+            "tests/create.html",
+            {
+                "form": form,
+                "questions_data": posted_questions_data,
+                "question_errors": question_errors,
+                "user": request.user,
+            },
+        )
 
     form = TestForm()
 
-    return render(request, 'tests/create.html', {
-        'form': form,
-        'questions_data': [],
-        'question_errors': [],
-        'user': request.user,
-    })
-
+    return render(
+        request,
+        "tests/create.html",
+        {
+            "form": form,
+            "questions_data": [],
+            "question_errors": [],
+            "user": request.user,
+        },
+    )
 
 @login_required
 def test_edit(request, test_id):
     test = get_object_or_404(Test, id=test_id, teacher=request.user)
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = TestForm(request.POST, instance=test)
         posted_questions_data = _parse_questions_from_post(request)
         question_errors = _validate_questions_data(posted_questions_data)
 
         if form.is_valid() and not question_errors:
             test = form.save()
-
             test.questions.all().delete()
 
-            for index, q in enumerate(posted_questions_data, start=1):
-                text = (q.get('text') or '').strip()
-                question_type = q.get('question_type') or 'single'
-                options = q.get('options') or []
+            create_questions_from_data(test, posted_questions_data)
 
-                if not text:
-                    continue
+            return redirect("test_list")
 
-                question = Question.objects.create(
-                    test=test,
-                    text=text,
-                    question_type=question_type,
-                    order=index,
-                    points=int(q.get('points') or 1)
-                )
-
-                if question.question_type != 'text':
-                    for opt in options:
-                        option_text = (opt.get('text') or '').strip()
-                        if not option_text:
-                            continue
-
-                        Option.objects.create(
-                            question=question,
-                            text=option_text,
-                            is_correct=bool(opt.get('is_correct'))
-                        )
-
-            return redirect('test_list')
-
-        return render(request, 'tests/edit.html', {
-            'form': form,
-            'test': test,
-            'questions_data': posted_questions_data,
-            'question_errors': question_errors,
-            'user': request.user,
-        })
+        return render(
+            request,
+            "tests/edit.html",
+            {
+                "form": form,
+                "test": test,
+                "questions_data": posted_questions_data,
+                "question_errors": question_errors,
+                "user": request.user,
+            },
+        )
 
     form = TestForm(instance=test)
 
-    return render(request, 'tests/edit.html', {
-        'form': form,
-        'test': test,
-        'questions_data': _build_questions_data(test),
-        'question_errors': [],
-        'user': request.user,
-    })
-
+    return render(
+        request,
+        "tests/edit.html",
+        {
+            "form": form,
+            "test": test,
+            "questions_data": _build_questions_data(test),
+            "question_errors": [],
+            "user": request.user,
+        },
+    )
 
 @login_required
 def test_delete(request, test_id):
     test = get_object_or_404(Test, id=test_id, teacher=request.user)
 
-    if request.method == 'POST':
+    if request.method == "POST":
         test.delete()
-        return redirect('test_list')
+        return redirect("test_list")
 
-    return render(request, 'tests/delete.html', {
-        'test': test,
-        'user': request.user,
-    })
-
+    return render(
+        request,
+        "tests/delete.html",
+        {
+            "test": test,
+            "user": request.user,
+        },
+    )
 
 @login_required
 def question_add(request, test_id):
     test = get_object_or_404(Test, id=test_id, teacher=request.user)
-    if request.method == 'POST':
+    if request.method == "POST":
         form = QuestionForm(request.POST)
         if form.is_valid():
             question = form.save(commit=False)
             question.test = test
             question.save()
-            return redirect('test_edit', test_id=test.id)
+            return redirect("test_edit", test_id=test.id)
     else:
         form = QuestionForm()
-    return render(request, 'tests/question_form.html', {
-        'form': form,
-        'test': test,
-        'title': 'Добавить вопрос',
-        'user': request.user,
-    })
-
+    return render(
+        request,
+        "tests/question_form.html",
+        {
+            "form": form,
+            "test": test,
+            "title": "Добавить вопрос",
+            "user": request.user,
+        },
+    )
 
 @login_required
 def question_edit(request, question_id):
     question = get_object_or_404(Question, id=question_id, test__teacher=request.user)
-    if request.method == 'POST':
+    if request.method == "POST":
         form = QuestionForm(request.POST, instance=question)
         if form.is_valid():
             form.save()
-            return redirect('test_edit', test_id=question.test.id)
+            return redirect("test_edit", test_id=question.test.id)
     else:
         form = QuestionForm(instance=question)
-    return render(request, 'tests/question_form.html', {
-        'form': form,
-        'question': question,
-        'test': question.test,
-        'title': 'Редактировать вопрос',
-        'user': request.user,
-    })
-
+    return render(
+        request,
+        "tests/question_form.html",
+        {
+            "form": form,
+            "question": question,
+            "test": question.test,
+            "title": "Редактировать вопрос",
+            "user": request.user,
+        },
+    )
 
 @login_required
 def question_delete(request, question_id):
     question = get_object_or_404(Question, id=question_id, test__teacher=request.user)
     test_id = question.test.id
-    if request.method == 'POST':
+    if request.method == "POST":
         question.delete()
-        return redirect('test_edit', test_id=test_id)
-    return render(request, 'tests/question_confirm_delete.html', {
-        'question': question,
-        'user': request.user,
-    })
-
+        return redirect("test_edit", test_id=test_id)
+    return render(
+        request,
+        "tests/question_confirm_delete.html",
+        {
+            "question": question,
+            "user": request.user,
+        },
+    )
 
 @login_required
 def option_add(request, question_id):
     question = get_object_or_404(Question, id=question_id, test__teacher=request.user)
-    if request.method == 'POST':
+    if request.method == "POST":
         form = OptionForm(request.POST)
         if form.is_valid():
             option = form.save(commit=False)
             option.question = question
             option.save()
-            return redirect('test_edit', test_id=question.test.id)
+            return redirect("test_edit", test_id=question.test.id)
     else:
         form = OptionForm()
-    return render(request, 'tests/option_form.html', {
-        'form': form,
-        'question': question,
-        'title': 'Добавить вариант ответа',
-        'user': request.user,
-    })
-
+    return render(
+        request,
+        "tests/option_form.html",
+        {
+            "form": form,
+            "question": question,
+            "title": "Добавить вариант ответа",
+            "user": request.user,
+        },
+    )
 
 @login_required
 def option_edit(request, option_id):
-    option = get_object_or_404(Option, id=option_id, question__test__teacher=request.user)
-    if request.method == 'POST':
+    option = get_object_or_404(
+        Option, id=option_id, question__test__teacher=request.user
+    )
+    if request.method == "POST":
         form = OptionForm(request.POST, instance=option)
         if form.is_valid():
             form.save()
-            return redirect('test_edit', test_id=option.question.test.id)
+            return redirect("test_edit", test_id=option.question.test.id)
     else:
         form = OptionForm(instance=option)
-    return render(request, 'tests/option_form.html', {
-        'form': form,
-        'option': option,
-        'title': 'Редактировать вариант',
-        'user': request.user,
-    })
-
+    return render(
+        request,
+        "tests/option_form.html",
+        {
+            "form": form,
+            "option": option,
+            "title": "Редактировать вариант",
+            "user": request.user,
+        },
+    )
 
 @login_required
 def option_delete(request, option_id):
-    option = get_object_or_404(Option, id=option_id, question__test__teacher=request.user)
+    option = get_object_or_404(
+        Option, id=option_id, question__test__teacher=request.user
+    )
     test_id = option.question.test.id
-    if request.method == 'POST':
+    if request.method == "POST":
         option.delete()
-        return redirect('test_edit', test_id=test_id)
-    return render(request, 'tests/option_confirm_delete.html', {
-        'option': option,
-        'user': request.user,
-    })
+        return redirect("test_edit", test_id=test_id)
+    return render(
+        request,
+        "tests/option_confirm_delete.html",
+        {
+            "option": option,
+            "user": request.user,
+        },
+    )
 
 @login_required
 def my_students(request):
-    teacher = Teacher.objects.get(user=request.user)
-    students = teacher.my_students.all()  
-    return render(request, 'teacher/students.html', {
-        'students': students,
-        'user': request.user,
-    })
+    teacher = get_teacher(request.user)
+    if not teacher:
+        messages.error(request, "Профиль преподавателя не найден")
+        return redirect("home")
 
-
+    students = teacher.my_students.all()
+    return render(
+        request,
+        "teacher/students.html",
+        {
+            "students": students,
+            "user": request.user,
+        },
+    )
 
 @login_required
 def add_student(request):
@@ -511,87 +551,90 @@ def add_student(request):
 
     error = None
     success = None
-    username_value = ''
+    username_value = ""
 
-    if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
         username_value = username
 
         if not username:
-            error = 'Введите логин ученика'
+            error = "Введите логин ученика"
         else:
             try:
                 student_user = User.objects.get(username=username, is_student=True)
                 student = Student.objects.get(user=student_user)
 
                 teacher_student, created = TeacherStudent.objects.get_or_create(
-                    teacher=teacher,
-                    student=student
+                    teacher=teacher, student=student
                 )
 
                 if created:
-                    success = f'Ученик {username} добавлен'
-                    username_value = ''
+                    success = f"Ученик {username} добавлен"
+                    username_value = ""
                 else:
-                    error = f'Ученик {username} уже есть в вашем списке'
+                    error = f"Ученик {username} уже есть в вашем списке"
 
             except User.DoesNotExist:
-                error = 'Такого пользователя не существует'
+                error = "Такого пользователя не существует"
             except Student.DoesNotExist:
-                error = 'Этот пользователь не является учеником'
+                error = "Этот пользователь не является учеником"
 
-    return render(request, 'teacher/add_student.html', {
-        'user': request.user,
-        'error': error,
-        'success': success,
-        'username_value': username_value,
-    })
-    
-#назначить тест ученику
+    return render(
+        request,
+        "teacher/add_student.html",
+        {
+            "user": request.user,
+            "error": error,
+            "success": success,
+            "username_value": username_value,
+        },
+    )
+
 @login_required
 def assign_test(request, student_id):
+
     from django.utils import timezone
-    from datetime import datetime
 
     teacher = Teacher.objects.get(user=request.user)
 
     try:
-        teacher_student = TeacherStudent.objects.get(teacher=teacher, student_id=student_id)
+        teacher_student = TeacherStudent.objects.get(
+            teacher=teacher, student_id=student_id
+        )
         student = teacher_student.student
     except TeacherStudent.DoesNotExist:
-        messages.error(request, 'Этот ученик не привязан к вам')
-        return redirect('my_students')
+        messages.error(request, "Этот ученик не привязан к вам")
+        return redirect("my_students")
 
     tests = Test.objects.filter(teacher=request.user)
 
     error = None
     success = None
 
-    if request.method == 'POST':
-        test_id = request.POST.get('test_id')
-        deadline_raw = request.POST.get('deadline')
+    if request.method == "POST":
+        test_id = request.POST.get("test_id")
+        deadline_raw = request.POST.get("deadline")
 
-        # Валидация дедлайна
         deadline = None
         if deadline_raw:
             print("Проверяем дедлайн:", deadline_raw)
             try:
-                deadline_naive = datetime.strptime(deadline_raw, '%Y-%m-%dT%H:%M')
+                deadline_naive = datetime.strptime(deadline_raw, "%Y-%m-%dT%H:%M")
                 deadline = timezone.make_aware(deadline_naive)
                 now = timezone.now()
                 print("deadline:", deadline)
                 print("now:", now)
                 if deadline < now:
                     print("Дедлайн в прошлом! Ошибка.")
-                    messages.error(request, 'Дедлайн не может быть в прошлом!')
-                    return redirect('assign_test', student_id=student_id)
+                    messages.error(request, "Дедлайн не может быть в прошлом!")
+                    return redirect("assign_test", student_id=student_id)
             except Exception as e:
                 print("Ошибка парсинга дедлайна:", e)
-                messages.error(request, 'Некорректный формат даты')
-                return redirect('assign_test', student_id=student_id)
+                messages.error(request, "Некорректный формат даты")
+                return redirect("assign_test", student_id=student_id)
 
         if not test_id:
-            error = 'Выберите тест'
+            error = "Выберите тест"
         else:
             try:
                 test = Test.objects.get(id=test_id, teacher=request.user)
@@ -599,168 +642,185 @@ def assign_test(request, student_id):
                     student=student.user,
                     test=test,
                     defaults={
-                        'status': 'assigned',
-                        'deadline': deadline,
-                    }
+                        "status": "assigned",
+                        "deadline": deadline,
+                    },
                 )
                 if not created:
                     error = f'Тест "{test.title}" уже был назначен этому ученику'
                 else:
-                    success = f'Тест "{test.title}" назначен ученику {student.user.username}'
+                    success = (
+                        f'Тест "{test.title}" назначен ученику {student.user.username}'
+                    )
                     messages.success(request, success)
-                    return redirect('my_students')
+                    return redirect("my_students")
             except Test.DoesNotExist:
-                error = 'Тест не найден'
+                error = "Тест не найден"
 
-    return render(request, 'teacher/assign_test.html', {
-        'student': student,
-        'tests': tests,
-        'user': request.user,
-        'error': error,
-        'success': success,
-        'selected_test_id': request.POST.get('test_id', '') if request.method == 'POST' else '',
-        'deadline_value': request.POST.get('deadline', '') if request.method == 'POST' else '',
-    })
+    return render(
+        request,
+        "teacher/assign_test.html",
+        {
+            "student": student,
+            "tests": tests,
+            "user": request.user,
+            "error": error,
+            "success": success,
+            "selected_test_id": (
+                request.POST.get("test_id", "") if request.method == "POST" else ""
+            ),
+            "deadline_value": (
+                request.POST.get("deadline", "") if request.method == "POST" else ""
+            ),
+        },
+    )
 
-#список назначенных тестов у ученика
 @login_required
 def my_assigned_tests(request):
-    assigned_tests = TestResult.objects.filter(
-        student=request.user
-    ).select_related('test').order_by('-id')
+    assigned_tests = (
+        TestResult.objects.filter(student=request.user)
+        .select_related("test")
+        .order_by("-id")
+    )
 
-    return render(request, 'student/assigned_test.html', {
-        'assigned_tests': assigned_tests,
-        'user': request.user,
-    })
+    return render(
+        request,
+        "student/assigned_test.html",
+        {
+            "assigned_tests": assigned_tests,
+            "user": request.user,
+        },
+    )
 
 def _build_take_question_items(test, post_data=None, question_errors=None):
     items = []
 
-    for question in test.questions.all().order_by('order', 'id'):
+    for question in test.questions.all().order_by("order", "id"):
         error = question_errors.get(question.id) if question_errors else None
 
         item = {
-            'question': question,
-            'error': error,
-            'options': [],
-            'answer_text': '',
+            "question": question,
+            "error": error,
+            "options": [],
+            "answer_text": "",
         }
 
         if post_data:
-            if question.question_type == 'text':
-                item['answer_text'] = post_data.get(f'question_{question.id}', '')
+            if question.question_type == "text":
+                item["answer_text"] = post_data.get(f"question_{question.id}", "")
 
-            selected_values = post_data.getlist(f'question_{question.id}')
+            selected_values = post_data.getlist(f"question_{question.id}")
 
             for option in question.options.all():
-                item['options'].append({
-                    'option': option,
-                    'checked': str(option.id) in selected_values,
-                })
+                item["options"].append(
+                    {
+                        "option": option,
+                        "checked": str(option.id) in selected_values,
+                    }
+                )
         else:
             for option in question.options.all():
-                item['options'].append({
-                    'option': option,
-                    'checked': False,
-                })
+                item["options"].append(
+                    {
+                        "option": option,
+                        "checked": False,
+                    }
+                )
 
         items.append(item)
 
     return items
 
-#страница прохождения теста учеником
 @login_required
 def take_test(request, test_id):
     try:
         test_result = TestResult.objects.get(
-            student=request.user,
-            test_id=test_id,
-            status='assigned'
+            student=request.user, test_id=test_id, status="assigned"
         )
     except TestResult.DoesNotExist:
-        messages.error(request, 'Этот тест не назначен вам или уже пройден')
-        return redirect('my_assigned_tests')
+        messages.error(request, "Этот тест не назначен вам или уже пройден")
+        return redirect("my_assigned_tests")
 
     if test_result.deadline and test_result.deadline < timezone.now():
-        messages.error(request, f'Дедлайн теста истёк {test_result.deadline.strftime("%d.%m.%Y %H:%M")}')
-        return redirect('my_assigned_tests')
+        messages.error(
+            request,
+            f'Дедлайн теста истёк {test_result.deadline.strftime("%d.%m.%Y %H:%M")}',
+        )
+        return redirect("my_assigned_tests")
 
     test = test_result.test
     question_items = _build_take_question_items(test)
 
-    return render(request, 'student/take_test.html', {
-        'test': test,
-        'question_items': question_items,
-        'test_result_id': test_result.id,
-        'user': request.user,
-        'general_error': None,
-    })
-#прием ответов ученика и подсчет баллов
+    return render(
+        request,
+        "student/take_test.html",
+        {
+            "test": test,
+            "question_items": question_items,
+            "test_result_id": test_result.id,
+            "user": request.user,
+            "general_error": None,
+        },
+    )
+
 @login_required
 def submit_test(request, test_id):
     try:
         test_result = TestResult.objects.get(
-            student=request.user,
-            test_id=test_id,
-            status='assigned'
+            student=request.user, test_id=test_id, status="assigned"
         )
     except TestResult.DoesNotExist:
-        messages.error(request, 'Этот тест не доступен для отправки')
-        return redirect('my_assigned_tests')
+        messages.error(request, "Этот тест не доступен для отправки")
+        return redirect("my_assigned_tests")
 
     if test_result.deadline and test_result.deadline < timezone.now():
-        messages.error(request, 'Дедлайн теста истёк')
-        return redirect('my_assigned_tests')
+        messages.error(request, "Дедлайн теста истёк")
+        return redirect("my_assigned_tests")
 
     test = test_result.test
-    questions = test.questions.all().order_by('order', 'id')
+    questions = test.questions.all().order_by("order", "id")
 
     question_errors = {}
 
     for question in questions:
-        field_name = f'question_{question.id}'
+        field_name = f"question_{question.id}"
 
-        if question.question_type == 'single':
+        if question.question_type == "single":
             if not request.POST.get(field_name):
-                question_errors[question.id] = 'Выберите один вариант ответа'
-
-        elif question.question_type == 'multiple':
+                question_errors[question.id] = "Выберите один вариант ответа"
+        elif question.question_type == "multiple":
             if not request.POST.getlist(field_name):
-                question_errors[question.id] = 'Выберите хотя бы один вариант ответа'
-
-        elif question.question_type == 'text':
-            if not request.POST.get(field_name, '').strip():
-                question_errors[question.id] = 'Введите развёрнутый ответ'
+                question_errors[question.id] = "Выберите хотя бы один вариант ответа"
+        elif question.question_type == "text":
+            if not request.POST.get(field_name, "").strip():
+                question_errors[question.id] = "Введите развёрнутый ответ"
 
     if question_errors:
         question_items = _build_take_question_items(
-            test,
-            post_data=request.POST,
-            question_errors=question_errors
+            test, post_data=request.POST, question_errors=question_errors
         )
-
-        return render(request, 'student/take_test.html', {
-            'test': test,
-            'question_items': question_items,
-            'test_result_id': test_result.id,
-            'user': request.user,
-            'general_error': 'Ответьте на все вопросы',
-        })
+        return render(
+            request,
+            "student/take_test.html",
+            {
+                "test": test,
+                "question_items": question_items,
+                "test_result_id": test_result.id,
+                "user": request.user,
+                "general_error": "Ответьте на все вопросы",
+            },
+        )
 
     total_score = 0
     max_score = 0
 
-    Answer.objects.filter(
-        student=request.user,
-        test=test
-    ).delete()
+    Answer.objects.filter(student=request.user, test=test).delete()
 
     for question in questions:
         max_score += question.points
 
-        if question.question_type == 'single':
-            user_answer = request.POST.get(f'question_{question.id}')
+        if question.question_type == "single":
+            user_answer = request.POST.get(f"question_{question.id}")
             correct_option = question.options.filter(is_correct=True).first()
 
             is_correct = False
@@ -775,20 +835,17 @@ def submit_test(request, test_id):
                 test=test,
                 question=question,
                 selected_option_id=user_answer,
-                is_correct=is_correct
+                is_correct=is_correct,
             )
 
-        elif question.question_type == 'multiple':
-            user_answers = request.POST.getlist(f'question_{question.id}')
-
+        elif question.question_type == "multiple":
+            user_answers = request.POST.getlist(f"question_{question.id}")
             correct_options = set(
-                question.options.filter(is_correct=True).values_list('id', flat=True)
+                question.options.filter(is_correct=True).values_list("id", flat=True)
             )
-
             user_answers_set = set(int(item) for item in user_answers if item)
 
             is_correct = user_answers_set == correct_options
-
             if is_correct:
                 total_score += question.points
 
@@ -798,57 +855,44 @@ def submit_test(request, test_id):
                     test=test,
                     question=question,
                     selected_option_id=option_id,
-                    is_correct=option_id in correct_options
+                    is_correct=option_id in correct_options,
                 )
 
-        elif question.question_type == 'text':
-            user_answer = request.POST.get(f'question_{question.id}', '').strip()
-
+        elif question.question_type == "text":
+            user_answer = request.POST.get(f"question_{question.id}", "").strip()
             Answer.objects.create(
                 student=request.user,
                 test=test,
                 question=question,
                 answer_text=user_answer,
-                is_correct=False
+                is_correct=False,
             )
 
-    has_text_questions = questions.filter(question_type='text').exists()
-
+    has_text_questions = questions.filter(question_type="text").exists()
     test_result.score = total_score
-
-    if has_text_questions:
-        test_result.status = 'pending_review'
-    else:
-        test_result.status = 'completed'
-
+    test_result.status = "pending_review" if has_text_questions else "completed"
     test_result.completed_at = timezone.now()
     test_result.save()
 
-    return redirect('test_results', test_result_id=test_result.id)
+    return redirect("test_results", test_result_id=test_result.id)
 
-
-#страница с результатами теста
 @login_required
 def test_results(request, test_result_id):
     try:
-        test_result = TestResult.objects.get(
-            id=test_result_id,
-            student=request.user
-        )
+        test_result = TestResult.objects.get(id=test_result_id, student=request.user)
     except TestResult.DoesNotExist:
-        messages.error(request, 'Результат не найден')
-        return redirect('my_assigned_tests')
+        messages.error(request, "Результат не найден")
+        return redirect("my_assigned_tests")
 
     test = test_result.test
 
-    answers = Answer.objects.filter(
-        student=request.user,
-        test=test
-    ).select_related('question', 'selected_option')
+    answers = Answer.objects.filter(student=request.user, test=test).select_related(
+        "question", "selected_option"
+    )
 
     questions_details = []
 
-    for question in test.questions.all().order_by('order', 'id'):
+    for question in test.questions.all().order_by("order", "id"):
         question_answers = answers.filter(question=question)
 
         selected_option_ids = set(
@@ -861,119 +905,128 @@ def test_results(request, test_result_id):
 
         comments = []
         if answer_for_comment:
-            comments = Comment.objects.filter(
-                answer=answer_for_comment
-            ).select_related('teacher').order_by('created_at')
+            comments = (
+                Comment.objects.filter(answer=answer_for_comment)
+                .select_related("teacher")
+                .order_by("created_at")
+            )
 
         options = []
 
-        if question.question_type != 'text':
+        if question.question_type != "text":
             for option in question.options.all():
-                options.append({
-                    'id': option.id,
-                    'text': option.text,
-                    'is_correct': option.is_correct,
-                    'is_selected': option.id in selected_option_ids,
-                })
+                options.append(
+                    {
+                        "id": option.id,
+                        "text": option.text,
+                        "is_correct": option.is_correct,
+                        "is_selected": option.id in selected_option_ids,
+                    }
+                )
 
-        if question.question_type == 'multiple':
+        if question.question_type == "multiple":
             correct_option_ids = set(
-                question.options.filter(is_correct=True).values_list('id', flat=True)
+                question.options.filter(is_correct=True).values_list("id", flat=True)
             )
 
             is_correct = selected_option_ids == correct_option_ids
 
             if selected_option_ids:
-                user_answer = ', '.join(
+                user_answer = ", ".join(
                     option.text
                     for option in question.options.filter(id__in=selected_option_ids)
                 )
             else:
-                user_answer = '(не выбран)'
+                user_answer = "(не выбран)"
 
-            status = 'Правильно' if is_correct else 'Неправильно'
+            status = "Правильно" if is_correct else "Неправильно"
             earned_points = question.points if is_correct else 0
 
         else:
             answer = question_answers.first()
 
-            if question.question_type == 'text':
-                user_answer = answer.answer_text if answer and answer.answer_text else '(не введён)'
+            if question.question_type == "text":
+                user_answer = (
+                    answer.answer_text
+                    if answer and answer.answer_text
+                    else "(не введён)"
+                )
                 is_correct = answer.is_correct if answer else False
-                status = 'Проверен' if is_correct else 'Ожидает проверки'
+                status = "Проверен" if is_correct else "Ожидает проверки"
                 earned_points = None
             else:
-                user_answer = answer.selected_option.text if answer and answer.selected_option else '(не выбран)'
+                user_answer = (
+                    answer.selected_option.text
+                    if answer and answer.selected_option
+                    else "(не выбран)"
+                )
                 is_correct = answer.is_correct if answer else False
-                status = 'Правильно' if is_correct else 'Неправильно'
+                status = "Правильно" if is_correct else "Неправильно"
                 earned_points = question.points if is_correct else 0
 
-        questions_details.append({
-            'text': question.text,
-            'type': question.question_type,
-            'user_answer': user_answer,
-            'selected_option': user_answer,
-            'options': options,
-            'is_correct': is_correct,
-            'status': status,
-            'points': question.points,
-            'earned_points': earned_points,
-            'comments': comments,
-        })
+        questions_details.append(
+            {
+                "text": question.text,
+                "type": question.question_type,
+                "user_answer": user_answer,
+                "selected_option": user_answer,
+                "options": options,
+                "is_correct": is_correct,
+                "status": status,
+                "points": question.points,
+                "earned_points": earned_points,
+                "comments": comments,
+            }
+        )
 
     max_score = sum(question.points for question in test.questions.all())
 
-    return render(request, 'student/results.html', {
-        'test': test,
-        'test_result': test_result,
-        'questions_details': questions_details,
-        'max_score': max_score,
-        'user': request.user,
-    })
-    
-
+    return render(
+        request,
+        "student/results.html",
+        {
+            "test": test,
+            "test_result": test_result,
+            "questions_details": questions_details,
+            "max_score": max_score,
+            "user": request.user,
+        },
+    )
 
 @login_required
 def teacher_result_detail(request, test_result_id):
     test_result = get_object_or_404(
-        TestResult,
-        id=test_result_id,
-        test__teacher=request.user
+        TestResult, id=test_result_id, test__teacher=request.user
     )
 
     test = test_result.test
 
-    if request.method == 'POST':
-        answer_id = request.POST.get('answer_id')
-        comment_text = request.POST.get('comment_text', '').strip()
+    if request.method == "POST":
+        answer_id = request.POST.get("answer_id")
+        comment_text = request.POST.get("comment_text", "").strip()
 
         if answer_id and comment_text:
             answer = get_object_or_404(
-                Answer,
-                id=answer_id,
-                question__test__teacher=request.user
+                Answer, id=answer_id, question__test__teacher=request.user
             )
 
             Comment.objects.create(
-                answer=answer,
-                teacher=request.user,
-                text=comment_text
+                answer=answer, teacher=request.user, text=comment_text
             )
 
-            messages.success(request, 'Комментарий сохранён')
+            messages.success(request, "Комментарий сохранён")
         else:
-            messages.error(request, 'Комментарий не может быть пустым')
+            messages.error(request, "Комментарий не может быть пустым")
 
-        return redirect('teacher_result_detail', test_result_id=test_result.id)
+        return redirect("teacher_result_detail", test_result_id=test_result.id)
 
     answers = Answer.objects.filter(
-        student=test_result.student,
-        test=test
-    ).select_related('question', 'selected_option')
+        student=test_result.student, test=test
+    ).select_related("question", "selected_option")
 
     questions_details = []
 
-    for question in test.questions.all().order_by('order', 'id'):
+    for question in test.questions.all().order_by("order", "id"):
         question_answers = answers.filter(question=question)
 
         selected_option_ids = set(
@@ -986,193 +1039,226 @@ def teacher_result_detail(request, test_result_id):
 
         comments = []
         if answer_for_comment:
-            comments = Comment.objects.filter(
-                answer=answer_for_comment
-            ).select_related('teacher').order_by('created_at')
+            comments = (
+                Comment.objects.filter(answer=answer_for_comment)
+                .select_related("teacher")
+                .order_by("created_at")
+            )
 
         options = []
 
-        if question.question_type != 'text':
+        if question.question_type != "text":
             for option in question.options.all():
-                options.append({
-                    'id': option.id,
-                    'text': option.text,
-                    'is_correct': option.is_correct,
-                    'is_selected': option.id in selected_option_ids,
-                })
+                options.append(
+                    {
+                        "id": option.id,
+                        "text": option.text,
+                        "is_correct": option.is_correct,
+                        "is_selected": option.id in selected_option_ids,
+                    }
+                )
 
-        if question.question_type == 'multiple':
+        if question.question_type == "multiple":
             correct_option_ids = set(
-                question.options.filter(is_correct=True).values_list('id', flat=True)
+                question.options.filter(is_correct=True).values_list("id", flat=True)
             )
 
             is_correct = selected_option_ids == correct_option_ids
 
             if selected_option_ids:
-                user_answer = ', '.join(
+                user_answer = ", ".join(
                     option.text
                     for option in question.options.filter(id__in=selected_option_ids)
                 )
             else:
-                user_answer = '(не выбран)'
+                user_answer = "(не выбран)"
 
         else:
             answer = question_answers.first()
 
-            if question.question_type == 'text':
-                user_answer = answer.answer_text if answer and answer.answer_text else '(не введён)'
+            if question.question_type == "text":
+                user_answer = (
+                    answer.answer_text
+                    if answer and answer.answer_text
+                    else "(не введён)"
+                )
                 is_correct = answer.is_correct if answer else False
             else:
-                user_answer = answer.selected_option.text if answer and answer.selected_option else '(не выбран)'
+                user_answer = (
+                    answer.selected_option.text
+                    if answer and answer.selected_option
+                    else "(не выбран)"
+                )
                 is_correct = answer.is_correct if answer else False
 
-        questions_details.append({
-            'text': question.text,
-            'type': question.question_type,
-            'user_answer': user_answer,
-            'selected_option': user_answer,
-            'options': options,
-            'is_correct': is_correct,
-            'points': question.points,
-            'answer_id': answer_for_comment.id if answer_for_comment else None,
-            'comments': comments,
-        })
+        questions_details.append(
+            {
+                "text": question.text,
+                "type": question.question_type,
+                "user_answer": user_answer,
+                "selected_option": user_answer,
+                "options": options,
+                "is_correct": is_correct,
+                "points": question.points,
+                "answer_id": answer_for_comment.id if answer_for_comment else None,
+                "comments": comments,
+            }
+        )
 
     max_score = sum(question.points for question in test.questions.all())
 
-    return render(request, 'teacher/result_detail.html', {
-        'test': test,
-        'test_result': test_result,
-        'questions_details': questions_details,
-        'answers_count': answers.count(),
-        'max_score': max_score,
-        'user': request.user,
-    })
+    return render(
+        request,
+        "teacher/result_detail.html",
+        {
+            "test": test,
+            "test_result": test_result,
+            "questions_details": questions_details,
+            "answers_count": answers.count(),
+            "max_score": max_score,
+            "user": request.user,
+        },
+    )
 
-
-#список ответов на развернутые вопросы, ожидающих комментария
 @login_required
 def pending_answers(request):
-    pending = Answer.objects.filter(
-        question__question_type='text',
-        is_correct=False,
-        question__test__teacher=request.user
-    ).select_related('student', 'question__test').order_by('-id')
-    return render(request, 'teacher/pending_answers.html', {
-        'pending': pending,
-        'user': request.user,
-    })
+    pending = (
+        Answer.objects.filter(
+            question__question_type="text",
+            is_correct=False,
+            question__test__teacher=request.user,
+        )
+        .select_related("student", "question__test")
+        .order_by("-id")
+    )
+    return render(
+        request,
+        "teacher/pending_answers.html",
+        {
+            "pending": pending,
+            "user": request.user,
+        },
+    )
 
-#добавление комментария к ответу ученика
 @login_required
 def add_comment(request, answer_id):
-    answer = get_object_or_404(Answer, id=answer_id, question__test__teacher=request.user)
-    if request.method == 'POST':
-        text = request.POST.get('text', '').strip()
+    answer = get_object_or_404(
+        Answer, id=answer_id, question__test__teacher=request.user
+    )
+    if request.method == "POST":
+        text = request.POST.get("text", "").strip()
         if text:
-            Comment.objects.create(
-                answer=answer,
-                teacher=request.user,
-                text=text
-            )
+            Comment.objects.create(answer=answer, teacher=request.user, text=text)
             answer.is_correct = True
             answer.save()
-            messages.success(request, 'Комментарий добавлен')
+            messages.success(request, "Комментарий добавлен")
         else:
-            messages.error(request, 'Текст комментария не может быть пустым')
-        return redirect('pending_answers')
-    return render(request, 'teacher/add_comment.html', {
-        'answer': answer,
-        'user': request.user,
-    })
+            messages.error(request, "Текст комментария не может быть пустым")
+        return redirect("pending_answers")
+    return render(
+        request,
+        "teacher/add_comment.html",
+        {
+            "answer": answer,
+            "user": request.user,
+        },
+    )
 
-
-#комментарии репетиторов к ответам ученика
 @login_required
 def my_comments(request):
     if request.user.is_teacher:
-        messages.error(request, 'Доступ только для учеников')
-        return redirect('teacher_dashboard')
-    
-    comments = Comment.objects.filter(
-        answer__student=request.user
-    ).select_related('answer__question', 'answer__test', 'teacher').order_by('-created_at')
-    
-    return render(request, 'student/my_comments.html', {
-        'comments': comments,
-        'user': request.user,
-    })
-    
+        messages.error(request, "Доступ только для учеников")
+        return redirect("teacher_dashboard")
+
+    comments = (
+        Comment.objects.filter(answer__student=request.user)
+        .select_related("answer__question", "answer__test", "teacher")
+        .order_by("-created_at")
+    )
+
+    return render(
+        request,
+        "student/my_comments.html",
+        {
+            "comments": comments,
+            "user": request.user,
+        },
+    )
+
 @login_required
 def review_text_answers(request, test_result_id):
     test_result = get_object_or_404(
-        TestResult,
-        id=test_result_id,
-        test__teacher=request.user
+        TestResult, id=test_result_id, test__teacher=request.user
     )
 
-    answers = Answer.objects.filter(
-        student=test_result.student,
-        test=test_result.test,
-        question__question_type='text',
-        is_correct=False
-    ).select_related('student', 'test', 'question').order_by('question__order', 'id')
+    answers = (
+        Answer.objects.filter(
+            student=test_result.student,
+            test=test_result.test,
+            question__question_type="text",
+            is_correct=False,
+        )
+        .select_related("student", "test", "question")
+        .order_by("question__order", "id")
+    )
 
-    return render(request, 'teacher/review_text.html', {
-        'test_result': test_result,
-        'answers': answers,
-        'user': request.user,
-    })
+    return render(
+        request,
+        "teacher/review_text.html",
+        {
+            "test_result": test_result,
+            "answers": answers,
+            "user": request.user,
+        },
+    )
 
-
-#выставление оценки за развернутый ответ
 @login_required
 def grade_answer(request, answer_id):
     answer = get_object_or_404(
-        Answer,
-        id=answer_id,
-        question__test__teacher=request.user
+        Answer, id=answer_id, question__test__teacher=request.user
     )
 
     test_result = get_object_or_404(
-        TestResult,
-        student=answer.student,
-        test=answer.test
+        TestResult, student=answer.student, test=answer.test
     )
 
     max_points = answer.question.points
 
-    if request.method == 'POST':
-        score_raw = request.POST.get('score', '').strip()
-        comment_text = request.POST.get('text', '').strip()
+    if request.method == "POST":
+        score_raw = request.POST.get("score", "").strip()
+        comment_text = request.POST.get("text", "").strip()
 
         error = None
         score_value = None
 
         if not score_raw:
-            error = 'Введите количество баллов'
+            error = "Введите количество баллов"
         else:
             try:
                 score_value = int(score_raw)
 
                 if score_value < 0:
-                    error = 'Баллы не могут быть меньше 0'
+                    error = "Баллы не могут быть меньше 0"
                 elif score_value > max_points:
-                    error = f'Максимум за этот вопрос — {max_points} балл.'
+                    error = f"Максимум за этот вопрос — {max_points} балл."
 
             except ValueError:
-                error = 'Введите корректное число'
+                error = "Введите корректное число"
 
         if error:
-            return render(request, 'teacher/grade_answer.html', {
-                'answer': answer,
-                'test_result': test_result,
-                'max_points': max_points,
-                'error': error,
-                'score_value': score_raw,
-                'comment_value': comment_text,
-                'user': request.user,
-            })
+            return render(
+                request,
+                "teacher/grade_answer.html",
+                {
+                    "answer": answer,
+                    "test_result": test_result,
+                    "max_points": max_points,
+                    "error": error,
+                    "score_value": score_raw,
+                    "comment_value": comment_text,
+                    "user": request.user,
+                },
+            )
 
         answer.is_correct = True
         answer.save()
@@ -1183,112 +1269,121 @@ def grade_answer(request, answer_id):
         unfinished_text_answers = Answer.objects.filter(
             student=answer.student,
             test=answer.test,
-            question__question_type='text',
-            is_correct=False
+            question__question_type="text",
+            is_correct=False,
         ).exclude(id=answer.id)
 
         if not unfinished_text_answers.exists():
-            test_result.status = 'completed'
+            test_result.status = "completed"
 
         test_result.save()
 
         if comment_text:
             Comment.objects.create(
-                answer=answer,
-                teacher=request.user,
-                text=comment_text
+                answer=answer, teacher=request.user, text=comment_text
             )
 
-        messages.success(request, 'Ответ проверен')
+        messages.success(request, "Ответ проверен")
 
-        return redirect('review_text_answers', test_result_id=test_result.id)
+        return redirect("review_text_answers", test_result_id=test_result.id)
 
-    return render(request, 'teacher/grade_answer.html', {
-        'answer': answer,
-        'test_result': test_result,
-        'max_points': max_points,
-        'error': None,
-        'score_value': '',
-        'comment_value': '',
-        'user': request.user,
-    })
+    return render(
+        request,
+        "teacher/grade_answer.html",
+        {
+            "answer": answer,
+            "test_result": test_result,
+            "max_points": max_points,
+            "error": None,
+            "score_value": "",
+            "comment_value": "",
+            "user": request.user,
+        },
+    )
 
-#аналитика для репетитора
 @login_required
 def teacher_statistics(request):
     teacher = request.user
-    tests = Test.objects.filter(teacher=teacher).prefetch_related('questions')    
-    stats = []  #список для статистики по каждому тесту
+    tests = Test.objects.filter(teacher=teacher).prefetch_related("questions")
+    stats = []  
     for test in tests:
         test_data = {
-            'id': test.id,
-            'title': test.title,
-            'questions': [],  
-            'total_wrong': 0,  
-            'total_answers': 0,  
+            "id": test.id,
+            "title": test.title,
+            "questions": [],
+            "total_wrong": 0,
+            "total_answers": 0,
         }
         for question in test.questions.all():
             wrong_count = Answer.objects.filter(
-                question=question,
-                is_correct=False
+                question=question, is_correct=False
             ).count()
             total_count = Answer.objects.filter(question=question).count()
             error_percent = 0
             if total_count > 0:
                 error_percent = int((wrong_count / total_count) * 100)
-            test_data['questions'].append({
-                'id': question.id,
-                'text': question.text,
-                'type': question.get_question_type_display(),
-                'wrong_count': wrong_count,
-                'total_count': total_count,
-                'error_percent': error_percent,
-                'points': question.points,
-            })
-            test_data['total_wrong'] += wrong_count
-            test_data['total_answers'] += total_count
-        if test_data['total_answers'] > 0:
-            test_data['total_error_percent'] = int((test_data['total_wrong'] / test_data['total_answers']) * 100)
+            test_data["questions"].append(
+                {
+                    "id": question.id,
+                    "text": question.text,
+                    "type": question.get_question_type_display(),
+                    "wrong_count": wrong_count,
+                    "total_count": total_count,
+                    "error_percent": error_percent,
+                    "points": question.points,
+                }
+            )
+            test_data["total_wrong"] += wrong_count
+            test_data["total_answers"] += total_count
+        if test_data["total_answers"] > 0:
+            test_data["total_error_percent"] = int(
+                (test_data["total_wrong"] / test_data["total_answers"]) * 100
+            )
         else:
-            test_data['total_error_percent'] = 0
+            test_data["total_error_percent"] = 0
         stats.append(test_data)
-    return render(request, 'teacher/statistics.html', {
-        'stats': stats,
-        'user': request.user,
-    })
+    return render(
+        request,
+        "teacher/statistics.html",
+        {
+            "stats": stats,
+            "user": request.user,
+        },
+    )
 
-#рекомендации для ученика
 @login_required
 def my_recommendations(request):
     student = request.user
     from django.db.models import Count
-    wrong_answers = Answer.objects.filter(
-        student=student,
-        is_correct=False
-    ).values(
-        'question_id', 
-        'question__text', 
-        'question__question_type' 
-    ).annotate(
-        wrong_count=Count('id') 
-    ).order_by('-wrong_count')[:5] 
-    recommendations = [] #список рекомендаций
+
+    wrong_answers = (
+        Answer.objects.filter(student=student, is_correct=False)
+        .values("question_id", "question__text", "question__question_type")
+        .annotate(wrong_count=Count("id"))
+        .order_by("-wrong_count")[:5]
+    )
+    recommendations = []  
     for wa in wrong_answers:
-        recommendations.append({
-            'question_text': wa['question__text'],
-            'wrong_count': wa['wrong_count'],
-            'question_type': wa['question__question_type'],
-        })
-    #общая статистика ученика
+        recommendations.append(
+            {
+                "question_text": wa["question__text"],
+                "wrong_count": wa["wrong_count"],
+                "question_type": wa["question__question_type"],
+            }
+        )
     total_answers = Answer.objects.filter(student=student).count()
     total_wrong = Answer.objects.filter(student=student, is_correct=False).count()
     success_rate = 0
     if total_answers > 0:
         success_rate = int(((total_answers - total_wrong) / total_answers) * 100)
-    return render(request, 'student/recommendations.html', {
-        'recommendations': recommendations,
-        'total_answers': total_answers,
-        'total_wrong': total_wrong,
-        'success_rate': success_rate,
-        'user': request.user,
-    })
+    return render(
+        request,
+        "student/recommendations.html",
+        {
+            "recommendations": recommendations,
+            "total_answers": total_answers,
+            "total_wrong": total_wrong,
+            "success_rate": success_rate,
+            "user": request.user,
+        },
+    )
