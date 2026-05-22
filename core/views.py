@@ -1445,3 +1445,5 @@ def remove_student(request, student_id):
     except TeacherStudent.DoesNotExist:
         messages.error(request, "Ученик не найден")
     return redirect("my_students")
+
+#CI/CD
